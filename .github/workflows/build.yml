@@ -56,6 +56,12 @@ jobs:
           repository: openstack/tap-as-a-service
           ref: 7fb35455e056b08088291e048b35c185b2f8f208
 
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: vexxhost/atmosphere
+          ref: stable/2025.2
+          path: vexxhost/atmosphere
+
       - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
         with:
           image-name: neutron
@@ -68,5 +74,5 @@ jobs:
             neutron-policy-server=vexxhost/neutron-policy-server
             neutron-ovn-network-logging-parser=vexxhost/neutron-ovn-network-logging-parser
             tap-as-a-service=openstack/tap-as-a-service
-            ovsinit=docker-image://ghcr.io/vexxhost/ovsinit:main
+            ovsinit-src=vexxhost/atmosphere/crates/ovsinit
           push: ${{ github.event_name != 'pull_request' }}
