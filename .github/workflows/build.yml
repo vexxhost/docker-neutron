@@ -19,47 +19,47 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: 56f461d877002bf3aedf887d6afa5f41a1b6be8d
+          ref: 56f461d877002bf3aedf887d6afa5f41a1b6be8d # stable/2025.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: c53a910ecfe3f626e18ccbac0651735a3413e2d1
+          ref: c53a910ecfe3f626e18ccbac0651735a3413e2d1 # stable/2025.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
-          ref: faac856749ea780a72be2d7d1f32b30b791eab74
+          ref: faac856749ea780a72be2d7d1f32b30b791eab74 # stable/2025.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-baremetal
-          ref: 0f8ab8318214edeef1a2ef74d3e5796cfe963845
+          ref: 0f8ab8318214edeef1a2ef74d3e5796cfe963845 # stable/2025.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-generic-switch
-          ref: 10c91e32b235b1f2490c40e688747cf37a7d8279
+          ref: 10c91e32b235b1f2490c40e688747cf37a7d8279 # stable/2025.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-policy-server
-          ref: a215317bfa147f29dd4e85ff96a54982384c8ba1
+          ref: a215317bfa147f29dd4e85ff96a54982384c8ba1 # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-ovn-network-logging-parser
-          ref: 3895d8f9d004e612c71b4f798d31c758e113946b
+          ref: 3895d8f9d004e612c71b4f798d31c758e113946b # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/tap-as-a-service
-          ref: 22dbac79c303b45332c061e2325a8ccffe404ca5
+          ref: 22dbac79c303b45332c061e2325a8ccffe404ca5 # stable/2025.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/atmosphere
-          ref: stable/2025.1
+          ref: stable/2025.1 # stable/2025.1
           path: vexxhost/atmosphere
 
       - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
