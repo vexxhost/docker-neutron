@@ -19,27 +19,27 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: 46f4ef447537d80bff2bb64da6a61fff40e8fcc3
+          ref: 56f461d877002bf3aedf887d6afa5f41a1b6be8d
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: 3cba8d7b3ad7b06414ddae8470b080a8479974a3
+          ref: c53a910ecfe3f626e18ccbac0651735a3413e2d1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 86ffcc8d43818689f2ad5defa94c93fef671064f
+          ref: faac856749ea780a72be2d7d1f32b30b791eab74
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-baremetal
-          ref: 81d40be9ef65c0fd68c83358e316728fdcc9a9ac
+          ref: 0f8ab8318214edeef1a2ef74d3e5796cfe963845
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-generic-switch
-          ref: 2f7f3e12369e46294a2be5c780db373ba831124c
+          ref: 10c91e32b235b1f2490c40e688747cf37a7d8279
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
@@ -54,12 +54,12 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/tap-as-a-service
-          ref: 7fb35455e056b08088291e048b35c185b2f8f208
+          ref: 22dbac79c303b45332c061e2325a8ccffe404ca5
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/atmosphere
-          ref: main
+          ref: stable/2025.1
           path: vexxhost/atmosphere
 
       - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
