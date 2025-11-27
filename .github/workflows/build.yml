@@ -19,37 +19,37 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: 872a1c5709ef83562eb00e821c5740173e52a6a0
+          ref: 872a1c5709ef83562eb00e821c5740173e52a6a0 # stable/2024.2
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: 1d3ecd2cf3ebc82267406d59e06f3f3b97ffdcd4
+          ref: 1d3ecd2cf3ebc82267406d59e06f3f3b97ffdcd4 # stable/2024.2
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 11ffc53800e528d0b0544f7467a7487e0822bd3f
+          ref: 11ffc53800e528d0b0544f7467a7487e0822bd3f # stable/2024.2
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-baremetal
-          ref: 1fba63ce21619d3fe70117c6679e53629c612bc1
+          ref: 1fba63ce21619d3fe70117c6679e53629c612bc1 # stable/2024.2
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-generic-switch
-          ref: a6ad4a1a031a4ef9c5bb7f824f2414459dab2d5d
+          ref: a6ad4a1a031a4ef9c5bb7f824f2414459dab2d5d # stable/2024.2
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-policy-server
-          ref: a215317bfa147f29dd4e85ff96a54982384c8ba1
+          ref: a215317bfa147f29dd4e85ff96a54982384c8ba1 # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-ovn-network-logging-parser
-          ref: 3895d8f9d004e612c71b4f798d31c758e113946b
+          ref: 3895d8f9d004e612c71b4f798d31c758e113946b # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
