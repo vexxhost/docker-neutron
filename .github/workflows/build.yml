@@ -16,38 +16,38 @@ jobs:
       id-token: write
       packages: write
     steps:
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
           ref: f28079a77719d283f5b474bdfd8d0a235f37694d
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
           ref: zed-eol
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-baremetal
           ref: fc8ddc5f68eba645239e5faa3c370dab5cc94bc9
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-policy-server
           ref: 41c862a7e15955195ebac56a48ae98137aac146d
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-ovn-network-logging-parser
           ref: 3895d8f9d004e612c71b4f798d31c758e113946b
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/atmosphere
           ref: stable/zed
           path: vexxhost/atmosphere
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/build-image@stable/zed
+      - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
         with:
           image-name: neutron
           base-image-tag: zed
