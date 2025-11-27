@@ -53,11 +53,6 @@ jobs:
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
-          repository: openstack/tap-as-a-service
-          ref: 7fb35455e056b08088291e048b35c185b2f8f208 # stable/2024.1
-
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
-        with:
           repository: vexxhost/atmosphere
           ref: stable/2024.1
           path: vexxhost/atmosphere
@@ -73,6 +68,5 @@ jobs:
             networking-generic-switch=openstack/networking-generic-switch
             neutron-policy-server=vexxhost/neutron-policy-server
             neutron-ovn-network-logging-parser=vexxhost/neutron-ovn-network-logging-parser
-            tap-as-a-service=openstack/tap-as-a-service
             ovsinit-src=vexxhost/atmosphere/crates/ovsinit
           push: ${{ github.event_name != 'pull_request' }}
