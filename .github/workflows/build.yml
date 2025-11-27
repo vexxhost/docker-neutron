@@ -19,32 +19,32 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: b8e53c24fd69db25ce76e7927f0b5b0e1b6737b3
+          ref: b8e53c24fd69db25ce76e7927f0b5b0e1b6737b3 # unmaintained/2023.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 1960e23eccde6e7d6b3b6e3d575ff55b1aca68de
+          ref: 1960e23eccde6e7d6b3b6e3d575ff55b1aca68de # unmaintained/2023.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-baremetal
-          ref: 9ab0191ed91658034814c596ec819911f418a1d5
+          ref: 9ab0191ed91658034814c596ec819911f418a1d5 # unmaintained/2023.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-policy-server
-          ref: 41c862a7e15955195ebac56a48ae98137aac146d
+          ref: 41c862a7e15955195ebac56a48ae98137aac146d # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-ovn-network-logging-parser
-          ref: 3895d8f9d004e612c71b4f798d31c758e113946b
+          ref: 3895d8f9d004e612c71b4f798d31c758e113946b # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/atmosphere
-          ref: stable/2023.1
+          ref: stable/2023.1 # stable/2023.1
           path: vexxhost/atmosphere
 
       - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
