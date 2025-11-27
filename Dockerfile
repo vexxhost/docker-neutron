@@ -14,8 +14,7 @@ RUN \
   --mount=type=bind,from=networking-baremetal,source=/,target=/src/networking-baremetal,readwrite \
   --mount=type=bind,from=networking-generic-switch,source=/,target=/src/networking-generic-switch,readwrite \
   --mount=type=bind,from=neutron-policy-server,source=/,target=/src/neutron-policy-server,readwrite \
-  --mount=type=bind,from=neutron-ovn-network-logging-parser,source=/,target=/src/neutron-ovn-network-logging-parser,readwrite \
-  --mount=type=bind,from=tap-as-a-service,source=/,target=/src/tap-as-a-service,readwrite <<EOF bash -xe
+  --mount=type=bind,from=neutron-ovn-network-logging-parser,source=/,target=/src/neutron-ovn-network-logging-parser,readwrite <<EOF bash -xe
 uv pip install \
     --constraint /upper-constraints.txt \
         /src/neutron \
@@ -25,7 +24,6 @@ uv pip install \
         /src/networking-generic-switch \
         /src/neutron-policy-server \
         /src/neutron-ovn-network-logging-parser \
-        /src/tap-as-a-service \
         pymemcache
 EOF
 
