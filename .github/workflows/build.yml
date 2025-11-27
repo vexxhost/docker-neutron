@@ -50,7 +50,6 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
         with:
           image-name: neutron
-          base-image-tag: zed
           build-contexts: |
             neutron=openstack/neutron
             neutron-vpnaas=openstack/neutron-vpnaas
