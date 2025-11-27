@@ -1,0 +1,72 @@
+name: build
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - stable/**
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    steps:
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: openstack/neutron
+          ref: 5d30aaa8db7fd4eb1bded91f32d9c51be3d2edda
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: openstack/neutron-dynamic-routing
+          ref: 3cba8d7b3ad7b06414ddae8470b080a8479974a3
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: openstack/neutron-vpnaas
+          ref: 86ffcc8d43818689f2ad5defa94c93fef671064f
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: openstack/networking-baremetal
+          ref: 81d40be9ef65c0fd68c83358e316728fdcc9a9ac
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: openstack/networking-generic-switch
+          ref: 2f7f3e12369e46294a2be5c780db373ba831124c
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: vexxhost/neutron-policy-server
+          ref: a215317bfa147f29dd4e85ff96a54982384c8ba1
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: vexxhost/neutron-ovn-network-logging-parser
+          ref: 3895d8f9d004e612c71b4f798d31c758e113946b
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+        with:
+          repository: openstack/tap-as-a-service
+          ref: 7fb35455e056b08088291e048b35c185b2f8f208
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
+        with:
+          image-name: neutron
+          build-contexts: |
+            neutron=openstack/neutron
+            neutron-dynamic-routing=openstack/neutron-dynamic-routing
+            neutron-vpnaas=openstack/neutron-vpnaas
+            networking-baremetal=openstack/networking-baremetal
+            networking-generic-switch=openstack/networking-generic-switch
+            neutron-policy-server=vexxhost/neutron-policy-server
+            neutron-ovn-network-logging-parser=vexxhost/neutron-ovn-network-logging-parser
+            tap-as-a-service=openstack/tap-as-a-service
+            ovsinit=docker-image://ghcr.io/vexxhost/ovsinit:main
+          push: ${{ github.event_name != 'pull_request' }}
