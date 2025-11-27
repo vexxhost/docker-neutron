@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: © 2025 VEXXHOST, Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+FROM rust AS ovsinit
+WORKDIR /src
+COPY --from=ovsinit-src / /src
+RUN cargo install --path .
+
 FROM ghcr.io/vexxhost/openstack-venv-builder:main@sha256:bff09007027c2b6b908e2e970fe5cf06a4c025848e69bad73aa4970aff4978e2 AS build
 RUN \
   --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
@@ -37,5 +42,5 @@ apt-get install -qq -y --no-install-recommends \
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 EOF
-COPY --from=ovsinit /usr/local/bin/ovsinit /usr/local/bin/ovsinit
+COPY --from=ovsinit /usr/local/cargo/bin/ovsinit /usr/local/bin/ovsinit
 COPY --from=build --link /var/lib/openstack /var/lib/openstack
