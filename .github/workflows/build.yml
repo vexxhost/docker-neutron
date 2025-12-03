@@ -35,7 +35,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/neutron-policy-server
-          ref: 41c862a7e15955195ebac56a48ae98137aac146d # main
+          ref: a215317bfa147f29dd4e85ff96a54982384c8ba1 # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
