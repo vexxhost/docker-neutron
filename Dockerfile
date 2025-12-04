@@ -6,7 +6,7 @@ WORKDIR /src
 COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
-FROM ghcr.io/vexxhost/openstack-venv-builder:main@sha256:90f2718555b2f2b5b87ddf910f7ea617d50d8d5c17d1ac8bf3ed4861dda2a1d6 AS build
+FROM ghcr.io/vexxhost/openstack-venv-builder:main@sha256:328f1856f71e2087b69426327202a5f47c0279bc90f0ed71ff082a9260527958 AS build
 RUN \
   --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
