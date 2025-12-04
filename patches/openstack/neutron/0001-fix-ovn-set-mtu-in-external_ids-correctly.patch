@@ -19,20 +19,21 @@ Change-Id: Ib4ee7e0e8b13141739f5a8600333be856afd4a4e
 ---
 
 diff --git a/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/ovn_client.py b/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/ovn_client.py
-index aa1c989..f18b558 100644
+index f6e59a79e..de8aae287 100644
 --- a/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/ovn_client.py
 +++ b/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/ovn_client.py
-@@ -473,11 +473,11 @@
+@@ -451,11 +451,12 @@ class OVNClient:
          # HA Chassis Group will bind the port to the highest
          # priority Chassis
          if port_type != ovn_const.LSP_TYPE_EXTERNAL:
-+            port_net = self._plugin.get_network(context, port['network_id'])
++            port_net = self._plugin.get_network(admin_context,
++                                                port['network_id'])
 +            mtu = str(port_net['mtu'])
 +
              if (bp_info.vnic_type == portbindings.VNIC_REMOTE_MANAGED and
                      ovn_const.VIF_DETAILS_PF_MAC_ADDRESS in bp_info.bp_param):
--                port_net = self._plugin.get_network(
--                    context, port['network_id'])
+-                port_net = self._plugin.get_network(admin_context,
+-                                                    port['network_id'])
 -                mtu = str(port_net['mtu'])
                  options.update({
                      ovn_const.LSP_OPTIONS_VIF_PLUG_TYPE_KEY: 'representor',
