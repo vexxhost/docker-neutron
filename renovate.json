@@ -1,4 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>vexxhost/docker-atmosphere"]
+  "extends": ["local>vexxhost/docker-atmosphere"],
+  "packageRules": [
+    {
+      "description": "Automerge rust Docker image updates",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["rust"],
+      "automerge": true
+    }
+  ]
 }
