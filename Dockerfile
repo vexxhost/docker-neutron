@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 VEXXHOST, Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-FROM rust@sha256:c57bc0d341a0915841d9f9a420af28d027996d8705af5c591dbd069dba2d10b4 AS ovsinit
+FROM rust@sha256:33f31e4450323fef5c784d433f136e70d16f4865047d7b1a969b67696a274ebe AS ovsinit
 WORKDIR /src
 COPY --from=ovsinit-src / /src
 RUN cargo install --path .
