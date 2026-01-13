@@ -25,7 +25,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: 3cba8d7b3ad7b06414ddae8470b080a8479974a3 # master
+          ref: 0201927dce0f8a674ff56220de2ec913f17f7b86 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
@@ -55,7 +55,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/tap-as-a-service
-          ref: 92010a523c5d2561faae07311ccbda61e825cb55 # master
+          ref: 5f214b7775f4e21e76530f78359e80112e8934c5 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
