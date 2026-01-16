@@ -20,7 +20,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: 4bbd427d9f58ac6bc35a2dcdc07584cc5ab415c6 # master
+          ref: 11dfb0be994fda221a66470ec6df9676dbcc4054 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
@@ -55,7 +55,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/tap-as-a-service
-          ref: e6a5ee62f12c1e719fccad87e7eb8a5e5890ae09 # master
+          ref: e83c8fafa924953aa0a944c91de51b7ca3375a62 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
