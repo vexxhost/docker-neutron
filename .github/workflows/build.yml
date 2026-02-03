@@ -40,7 +40,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-generic-switch
-          ref: 77cfd16693250e30d777742ee071cad68000d408 # master
+          ref: cd93f3c222df82a5db26eea31feff6d64619730c # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
