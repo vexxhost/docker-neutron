@@ -29,7 +29,7 @@ uv pip install \
         pymemcache
 EOF
 
-FROM ghcr.io/vexxhost/python-base:main@sha256:eeb4be14356f46a98d19a0a0f39602e4d9a8c4d993f0ab6621b6c402f70caedc
+FROM ghcr.io/vexxhost/python-base:main@sha256:b332586e4edb1081005f949ed244dbf0bec6e8bb5b6037049260e7c6270d1104
 RUN \
     groupadd -g 42424 neutron && \
     useradd -u 42424 -g 42424 -M -d /var/lib/neutron -s /usr/sbin/nologin -c "Neutron User" neutron && \
