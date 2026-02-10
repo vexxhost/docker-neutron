@@ -30,7 +30,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 1376cb3d8772a34eb73dbbb084982fe53fd11f42 # master
+          ref: 2ae73be56dd5e3e375018cb86f2a178e07b2d913 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
