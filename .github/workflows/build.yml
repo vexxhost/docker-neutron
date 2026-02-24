@@ -20,7 +20,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: acb1a7fcba8a0bbf614204b2d1091f40da8696b5 # master
+          ref: 07504c605c5c120116311335e4eb9b7f4fc52168 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
@@ -30,7 +30,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 437c7783459ae0d82110ac167560e8216baec2d4 # master
+          ref: e864009828487825570d530c2dbde8ba56b11c68 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
