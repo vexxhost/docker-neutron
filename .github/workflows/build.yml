@@ -20,7 +20,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: 04d2edc2495db1dff44cb570cd53da726118f71c # master
+          ref: 659027692a2e169ae842ebd2c84b324b1086395a # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
@@ -40,7 +40,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/networking-generic-switch
-          ref: 819687bda0f63b0098f90f7376066195e37d2394 # master
+          ref: 5f26c6c066facee9e8f180f779f32b4ca25e7450 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
