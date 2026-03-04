@@ -20,7 +20,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: openstack/neutron
-          ref: d350d287f70d98f12d560ec8a64c63a27069b389 # master
+          ref: cf27b336bb0b15f63c1bd8d84158d6d6ccc9dff1 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
