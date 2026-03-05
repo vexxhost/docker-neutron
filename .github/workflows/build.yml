@@ -8,6 +8,9 @@ on:
       - main
       - stable/**
 
+permissions:
+  contents: read
+
 jobs:
   image:
     runs-on: ubuntu-latest
@@ -17,53 +20,58 @@ jobs:
       packages: write
       pull-requests: write
     steps:
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
+        with:
+          egress-policy: audit
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: openstack/neutron
           ref: fd67650fad2430ca94685b7750e2508341c2dbba # master
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: openstack/neutron-dynamic-routing
           ref: 8e60a49323922afc5ffd492311615f1114badd0d # master
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: openstack/neutron-vpnaas
           ref: e864009828487825570d530c2dbde8ba56b11c68 # master
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: openstack/networking-baremetal
           ref: f6f8e7d98adbc30b476670faf762faa1ceccbd7b # master
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: openstack/networking-generic-switch
           ref: 2f0fb9b60c7627f1a5f5883d8d1fc2fd119e341a # master
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: vexxhost/neutron-policy-server
           ref: a215317bfa147f29dd4e85ff96a54982384c8ba1 # main
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: vexxhost/neutron-ovn-network-logging-parser
           ref: 3895d8f9d004e612c71b4f798d31c758e113946b # main
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: openstack/tap-as-a-service
           ref: 5f4386bec86a6f53bf794360aa173a71f3b682b9 # master
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: vexxhost/atmosphere
           ref: main
           path: vexxhost/atmosphere
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/build-image@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/build-image@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           image-name: neutron
           build-contexts: |
