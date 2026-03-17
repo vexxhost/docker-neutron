@@ -6,7 +6,7 @@ WORKDIR /src
 COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
-FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:148beaa8e45a3ef509c38c21ddc4ca37f1eabae0a612a775b6c90f2d863eb1db AS build
+FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:657a94758c1e6d6f4da3942822e7ee3d018ee42f9abd44869e6c7da44a917912 AS build
 RUN \
   --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
@@ -29,7 +29,7 @@ uv pip install \
         pymemcache
 EOF
 
-FROM ghcr.io/vexxhost/python-base:2025.2@sha256:9dfaedfe83cd123bb09884abf997643359559245ee3c1862a00482411bdc6e36
+FROM ghcr.io/vexxhost/python-base:2025.2@sha256:2d7778678e75ad6e91be5bac2982b6094ede299405bf5ac668d0fde5fc290604
 RUN \
     groupadd -g 42424 neutron && \
     useradd -u 42424 -g 42424 -M -d /var/lib/neutron -s /usr/sbin/nologin -c "Neutron User" neutron && \
