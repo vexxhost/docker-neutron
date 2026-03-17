@@ -58,7 +58,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
           repository: vexxhost/neutron-ovn-network-logging-parser
-          ref: 3895d8f9d004e612c71b4f798d31c758e113946b # main
+          ref: 392a445022a87fb460f113bd5e3315760da105e7 # main
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@672cf56c8b828e444b6e7906d0ee355c7ec1dea9 # main
         with:
