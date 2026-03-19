@@ -6,7 +6,7 @@ WORKDIR /src
 COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
-FROM ghcr.io/vexxhost/openstack-venv-builder:2023.1@sha256:c773624a4e62aebce911d6a4280feabbdab59698e0b739a29568760c6f628411 AS build
+FROM ghcr.io/vexxhost/openstack-venv-builder:2023.1@sha256:75dff0de9b142ea69fffaf4b6607feba38c74bd076cbafeb136749573633e61e AS build
 RUN \
   --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
@@ -22,7 +22,7 @@ uv pip install \
         /src/neutron-ovn-network-logging-parser
 EOF
 
-FROM ghcr.io/vexxhost/python-base:2023.1@sha256:7dada8d003ea850dda9e18b346668ec6dcc723fb0ae464f69e16d545352752e7
+FROM ghcr.io/vexxhost/python-base:2023.1@sha256:324057ed04d83f12aa9bbbef0b5e92e82004b6a41a90b1277e3aba05b30414c3
 RUN \
     groupadd -g 42424 neutron && \
     useradd -u 42424 -g 42424 -M -d /var/lib/neutron -s /usr/sbin/nologin -c "Neutron User" neutron && \
