@@ -22,7 +22,7 @@ uv pip install \
         /src/neutron-ovn-network-logging-parser
 EOF
 
-FROM ghcr.io/vexxhost/python-base:zed@sha256:c4444a49f2044637fb417feaf0be475f3ea27694be1392039e9e3f01fdda1ea2
+FROM ghcr.io/vexxhost/python-base:zed@sha256:b393e40c5b9a2fba13252d1813c016fb4644944eff59912fa986b35fec061dca
 RUN \
     groupadd -g 42424 neutron && \
     useradd -u 42424 -g 42424 -M -d /var/lib/neutron -s /usr/sbin/nologin -c "Neutron User" neutron && \
