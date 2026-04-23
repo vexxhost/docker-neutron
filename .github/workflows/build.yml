@@ -28,27 +28,27 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/neutron
-          ref: a78b72cacd2b5f3ed4b6f53c79b8c7e97735b117 # master
+          ref: 61f100d4b987a493b9bbf61301caf2ed41e544d2 # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: d20b1f41dbd8213b9f43a8a77c3395122ff1ad29 # master
+          ref: cfa3822a95704f2390c22f38c3e3137c6ad9e1c5 # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/neutron-vpnaas
-          ref: d4e96b80e18502af9e8833a49a6ffee1b71b8203 # master
+          ref: 261f874756197543419488fe503711559d0e36ca # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/networking-baremetal
-          ref: 2cd5ca28b9c158baf12ab6fa3891f112809ee9ba # master
+          ref: 35b81c0bae30210d15670cc888ed6e1b3d5ffe89 # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/networking-generic-switch
-          ref: 053d1243535efc985766b7bdcbabe4954380190f # master
+          ref: abfe422790d5113a284fd81bed61cd69e3fab38b # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
@@ -63,7 +63,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/tap-as-a-service
-          ref: f7b99350c74a2a561ea366127c490d5a40b6e93d # master
+          ref: 0412df213bc8a4aa7f83264c272027d23a5573e5 # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
