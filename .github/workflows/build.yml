@@ -43,7 +43,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/networking-baremetal
-          ref: 2cd5ca28b9c158baf12ab6fa3891f112809ee9ba # master
+          ref: f327f9118240efd606890bce1dc6e9690749b860 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
