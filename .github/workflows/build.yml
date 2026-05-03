@@ -33,7 +33,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: 23a43b526d8e4119f27db51068da8860146c858b # master
+          ref: 5f608f7d3d43396cb956241e4ae2d5759bfb126d # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@a1ad25c00b6bbf44621748b3a9ed664c6b6cf929 # main
         with:
