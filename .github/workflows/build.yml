@@ -12,6 +12,29 @@ permissions:
   contents: read
 
 jobs:
+  tox:
+    name: tox (${{ matrix.project.repository }})
+    uses: vexxhost/docker-atmosphere/.github/workflows/tox.yml@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - repository: openstack/neutron
+            ref: 9925d26bc22397cb1e6e87d7417b7f753ca2245a # master
+          - repository: openstack/neutron-dynamic-routing
+            ref: 5f608f7d3d43396cb956241e4ae2d5759bfb126d # master
+          - repository: openstack/neutron-vpnaas
+            ref: 574bed1358e668364e3a69a91f249fd65cb11911 # master
+          - repository: openstack/networking-baremetal
+            ref: f327f9118240efd606890bce1dc6e9690749b860 # master
+          - repository: openstack/networking-generic-switch
+            ref: 053d1243535efc985766b7bdcbabe4954380190f # master
+          - repository: openstack/tap-as-a-service
+            ref: f7b99350c74a2a561ea366127c490d5a40b6e93d # master
+    with:
+      repository: ${{ matrix.project.repository }}
+      ref: ${{ matrix.project.ref }}
+
   image:
     runs-on: ubuntu-latest
     permissions:
