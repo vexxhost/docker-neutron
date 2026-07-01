@@ -28,27 +28,27 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/neutron
-          ref: 9925d26bc22397cb1e6e87d7417b7f753ca2245a # master
+          ref: e4df77137e4624ffbf15edfa8e29f808a2d024cd # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: 5f608f7d3d43396cb956241e4ae2d5759bfb126d # master
+          ref: 5fd949a542fa109bae2123103fe874356a85eb61 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 574bed1358e668364e3a69a91f249fd65cb11911 # master
+          ref: fae9111b49c8072b089f7aa2e1b28cf10b3e84b5 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/networking-baremetal
-          ref: f327f9118240efd606890bce1dc6e9690749b860 # master
+          ref: 83b249a504ccd2ec748e176a5ca50839266baa97 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/networking-generic-switch
-          ref: 053d1243535efc985766b7bdcbabe4954380190f # master
+          ref: 3a6b80bbee4c741472fa61ab13ae1e6b033afc7c # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
@@ -63,7 +63,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/tap-as-a-service
-          ref: f7b99350c74a2a561ea366127c490d5a40b6e93d # master
+          ref: 8e26c1007317e60c1ab623c7450ef55f700a76ed # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
