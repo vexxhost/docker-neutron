@@ -10,6 +10,7 @@ FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:7d1cc3aba4829555aa737
 RUN \
   --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
+  --mount=type=bind,from=neutron-fwaas,source=/,target=/src/neutron-fwaas,readwrite \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
   --mount=type=bind,from=networking-baremetal,source=/,target=/src/networking-baremetal,readwrite \
   --mount=type=bind,from=networking-generic-switch,source=/,target=/src/networking-generic-switch,readwrite \
@@ -20,6 +21,7 @@ uv pip install \
     --constraint /upper-constraints.txt \
         /src/neutron \
         /src/neutron-dynamic-routing \
+        /src/neutron-fwaas \
         /src/neutron-vpnaas \
         /src/networking-baremetal \
         /src/networking-generic-switch \
