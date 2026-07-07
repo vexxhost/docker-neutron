@@ -29,6 +29,11 @@ jobs:
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
+          repository: openstack/neutron-fwaas
+          ref: f6a36133a788697712733a69f10999fc2a9e2d6f # stable/2025.2
+
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
+        with:
           repository: openstack/neutron-vpnaas
           ref: 7fbb8f3fa469d831beee216dae1c1829f0173be5 # stable/2025.2
 
@@ -57,11 +62,6 @@ jobs:
           repository: openstack/tap-as-a-service
           ref: 7b413b43f2cedb0a43056c4d6f89d413448050b2 # stable/2025.2
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
-        with:
-          repository: openstack/neutron-fwaas
-          ref: f6a36133a788697712733a69f10999fc2a9e2d6f # stable/2025.2
-
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
         with:
           repository: vexxhost/atmosphere
@@ -74,12 +74,12 @@ jobs:
           build-contexts: |
             neutron=openstack/neutron
             neutron-dynamic-routing=openstack/neutron-dynamic-routing
+            neutron-fwaas=openstack/neutron-fwaas
             neutron-vpnaas=openstack/neutron-vpnaas
             networking-baremetal=openstack/networking-baremetal
             networking-generic-switch=openstack/networking-generic-switch
             neutron-policy-server=vexxhost/neutron-policy-server
             neutron-ovn-network-logging-parser=vexxhost/neutron-ovn-network-logging-parser
             tap-as-a-service=openstack/tap-as-a-service
-            neutron-fwaas=openstack/neutron-fwaas
             ovsinit-src=vexxhost/atmosphere/crates/ovsinit
           push: ${{ github.event_name != 'pull_request' }}

@@ -10,24 +10,24 @@ FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:7d1cc3aba4829555aa737
 RUN \
   --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
+  --mount=type=bind,from=neutron-fwaas,source=/,target=/src/neutron-fwaas,readwrite \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
   --mount=type=bind,from=networking-baremetal,source=/,target=/src/networking-baremetal,readwrite \
   --mount=type=bind,from=networking-generic-switch,source=/,target=/src/networking-generic-switch,readwrite \
   --mount=type=bind,from=neutron-policy-server,source=/,target=/src/neutron-policy-server,readwrite \
   --mount=type=bind,from=neutron-ovn-network-logging-parser,source=/,target=/src/neutron-ovn-network-logging-parser,readwrite \
-  --mount=type=bind,from=tap-as-a-service,source=/,target=/src/tap-as-a-service,readwrite \
-  --mount=type=bind,from=neutron-fwaas,source=/,target=/src/neutron-fwaas,readwrite <<EOF bash -xe
+  --mount=type=bind,from=tap-as-a-service,source=/,target=/src/tap-as-a-service,readwrite <<EOF bash -xe
 uv pip install \
     --constraint /upper-constraints.txt \
         /src/neutron \
         /src/neutron-dynamic-routing \
+        /src/neutron-fwaas \
         /src/neutron-vpnaas \
         /src/networking-baremetal \
         /src/networking-generic-switch \
         /src/neutron-policy-server \
         /src/neutron-ovn-network-logging-parser \
         /src/tap-as-a-service \
-        /src/neutron-fwaas \
         pymemcache
 EOF
 
