@@ -30,7 +30,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: openstack/neutron-fwaas
-          ref: f6a36133a788697712733a69f10999fc2a9e2d6f # stable/2025.2
+          ref: 8ba344faf2a36d6f20a75384af80c26e0342a1bc # stable/2025.2
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
