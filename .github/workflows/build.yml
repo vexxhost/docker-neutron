@@ -70,7 +70,7 @@ jobs:
           repository: openstack/tap-as-a-service
           ref: 0412df213bc8a4aa7f83264c272027d23a5573e5 # stable/2026.1
 
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@main
+      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@5923a8fba3a98cf17e36583cc498d5e70a01c482 # main
         with:
           repository: vexxhost/atmosphere
           ref: main
