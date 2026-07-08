@@ -44,28 +44,25 @@ diff --git a/neutron/tests/unit/services/ovn_l3/test_plugin.py b/neutron/tests/u
 index c9b1e85..94271588 100644
 --- a/neutron/tests/unit/services/ovn_l3/test_plugin.py
 +++ b/neutron/tests/unit/services/ovn_l3/test_plugin.py
-@@ -13,6 +13,7 @@
- #
+@@ -803,12 +803,16 @@
+                 lsp_address=ovn_const.DEFAULT_ADDR_FOR_LSP_WITH_PEER)
+         self.l3_inst._nb_ovn.add_nat_rule_in_lrouter.assert_not_called()
  
- import copy
-+import uuid
- from unittest import mock
- 
- from neutron_lib.api.definitions import external_net
-@@ -761,8 +762,11 @@
++    @mock.patch('neutron.common.ovn.utils.sync_ha_chassis_group_network')
+     @mock.patch('neutron.db.db_base_plugin_v2.NeutronDbPluginV2.get_network')
      @mock.patch('neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.ovn_client'
                  '.OVNClient._get_router_ports')
      @mock.patch('neutron.db.l3_db.L3_NAT_dbonly_mixin.add_router_interface')
--    def test_add_router_interface_vlan_network(self, ari, grps, gn):
-+    @mock.patch('neutron.common.ovn.utils.sync_ha_chassis_group_network')
-+    def test_add_router_interface_vlan_network(self, shcg, ari, grps, gn):
+-    def _test_add_router_interface_vlan_network(self, snat, ari, grps, gn):
++    def _test_add_router_interface_vlan_network(self, snat, ari, grps, gn,
++                                                shcg):
          router_id = 'router-id'
-+        ha_chassis_group_uuid = uuid.uuid4()
++        ha_chassis_group_uuid = uuidutils.generate_uuid()
 +        shcg.return_value = (ha_chassis_group_uuid, "fake_ha_chassis_group")
          ari.return_value = self.fake_router_interface_info
          self.get_router.return_value = self.fake_router_with_ext_gw
  
-@@ -787,6 +791,7 @@
+@@ -833,6 +837,7 @@
          fake_router_port_assert = self.fake_router_port_assert
          fake_router_port_assert['options'] = {
              'reside-on-redirect-chassis': 'true'}
@@ -73,11 +70,12 @@ index c9b1e85..94271588 100644
  
          self.l3_inst._nb_ovn.add_lrouter_port.assert_called_once_with(
              **fake_router_port_assert)
-@@ -798,6 +803,7 @@
-             'neutron-router-id', logical_ip='10.0.0.0/24',
-             external_ip='192.168.1.1', type='snat')
- 
+@@ -847,6 +852,7 @@
+             add_lrouter.assert_called_once_with(
+                 'neutron-router-id', logical_ip='10.0.0.0/24',
+                 external_ip='192.168.1.1', type='snat')
 +        shcg.assert_called_once()
+ 
          self.bump_rev_p.assert_called_with(
              mock.ANY, self.fake_router_port,
              ovn_const.TYPE_ROUTER_PORTS)
