@@ -28,32 +28,32 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/neutron
-          ref: 6eff8a9862fcd988e3a8bec89a4c1bc6e263b9cf # master
+          ref: 257d6c92cc5423ba8945ed101dd4d7a795ebbba7 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/neutron-dynamic-routing
-          ref: 5f608f7d3d43396cb956241e4ae2d5759bfb126d # master
+          ref: 5fd949a542fa109bae2123103fe874356a85eb61 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/neutron-fwaas
-          ref: d65605062229992d637157eab06d509daadbda34 # master
+          ref: dbe56f691f691470ce9bc1f898e8a76ebfab8d35 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 574bed1358e668364e3a69a91f249fd65cb11911 # master
+          ref: b9eacb9869b44ec11a0ebc6c07536127a9247ac1 # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/networking-baremetal
-          ref: f327f9118240efd606890bce1dc6e9690749b860 # master
+          ref: 9e248901c87b9ebb38247eeccf34aa8ddb207e5c # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/networking-generic-switch
-          ref: 053d1243535efc985766b7bdcbabe4954380190f # master
+          ref: 92a038a1ccf0cbedba58dced258ccab6f215e94a # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
@@ -68,7 +68,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
           repository: openstack/tap-as-a-service
-          ref: f7b99350c74a2a561ea366127c490d5a40b6e93d # master
+          ref: 8e26c1007317e60c1ab623c7450ef55f700a76ed # master
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@e72a4bb3670421e6ec38413e3e90b11259d86ea1 # main
         with:
