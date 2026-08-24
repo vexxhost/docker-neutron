@@ -6,9 +6,9 @@ WORKDIR /src
 COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
-FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:7d1cc3aba4829555aa73775ce44fc5f580ca0632e53a34c257bfc336ffb70abe AS build
+FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:58c59166bf4149f1d959aadc84e07fdb737bdb99c86e69dfa5c19dcdec7c7555 AS build
+ARG NEUTRON_VERSION=27.0.3+a8e.19.7
 RUN \
-  --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
   --mount=type=bind,from=neutron-fwaas,source=/,target=/src/neutron-fwaas,readwrite \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
@@ -19,7 +19,7 @@ RUN \
   --mount=type=bind,from=tap-as-a-service,source=/,target=/src/tap-as-a-service,readwrite <<EOF bash -xe
 uv pip install \
     --constraint /upper-constraints.txt \
-        /src/neutron \
+        "neutron==${NEUTRON_VERSION}" \
         /src/neutron-dynamic-routing \
         /src/neutron-fwaas \
         /src/neutron-vpnaas \
