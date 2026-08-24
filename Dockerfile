@@ -6,9 +6,9 @@ WORKDIR /src
 COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
-FROM ghcr.io/vexxhost/openstack-venv-builder:2024.1@sha256:c8b1715838718c6c754911aeebd3086cde7d0ef50d8b52ade799e9211dbee3c7 AS build
+FROM ghcr.io/vexxhost/openstack-venv-builder:2024.1@sha256:d1c7970b8f55c3ab6a74fa42918ad2c4e9a3bdf901840b28109375f8299b1e78 AS build
+ARG NEUTRON_VERSION=24.2.2+a8e.34.5
 RUN \
-  --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
   --mount=type=bind,from=networking-baremetal,source=/,target=/src/networking-baremetal,readwrite \
@@ -17,7 +17,7 @@ RUN \
   --mount=type=bind,from=neutron-ovn-network-logging-parser,source=/,target=/src/neutron-ovn-network-logging-parser,readwrite <<EOF bash -xe
 uv pip install \
     --constraint /upper-constraints.txt \
-        /src/neutron \
+        "neutron==${NEUTRON_VERSION}" \
         /src/neutron-dynamic-routing \
         /src/neutron-vpnaas \
         /src/networking-baremetal \
