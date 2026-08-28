@@ -1,0 +1,855 @@
+diff --git a/neutron/common/ovn/acl.py b/neutron/common/ovn/acl.py
+index 3f2b68cfce..6578962776 100644
+--- a/neutron/common/ovn/acl.py
++++ b/neutron/common/ovn/acl.py
+@@ -137,23 +137,40 @@ def acl_protocol_and_ports(r, icmp):
+     return match
+ 
+ 
+-def add_acls_for_drop_port_group(pg_name):
++def _add_acls_for_drop(pg_name, priority, log=False, log_name=None,
++                       severity=None, meter_name=None):
+     acl_list = []
+     for direction, p in (('from-lport', 'inport'),
+                          ('to-lport', 'outport')):
+         acl = {"port_group": pg_name,
+-               "priority": ovn_const.ACL_PRIORITY_DROP,
++               "priority": priority,
+                "action": ovn_const.ACL_ACTION_DROP,
+-               "log": False,
+-               "name": [],
+-               "severity": [],
++               "log": log,
++               "name": log_name or [],
++               "severity": severity or [],
+                "direction": direction,
+-               "match": '%s == @%s && ip' % (p, pg_name),
+-               "meter": []}
++               "match": f'{p} == @{pg_name} && ip',
++               "meter": meter_name or []}
+         acl_list.append(acl)
+     return acl_list
+ 
+ 
++def add_acls_for_drop_port_group(pg_name):
++    return _add_acls_for_drop(pg_name, ovn_const.ACL_PRIORITY_DROP)
++
++
++def add_acls_for_log_drop_port_group(pg_name, log_name, meter_name):
++    """Create per-SG drop ACLs with logging for network log attribution.
++
++    These ACLs are created at a higher priority than neutron_pg_drop so
++    that drop events are correctly attributed to the specific security
++    group's log resource.
++    """
++    return _add_acls_for_drop(pg_name, ovn_const.ACL_PRIORITY_LOG_DROP,
++                              log=True, log_name=log_name,
++                              severity="info", meter_name=meter_name)
++
++
+ def drop_all_ip_traffic_for_port(port):
+     acl_list = []
+     for direction, p in (('from-lport', 'inport'),
+diff --git a/neutron/common/ovn/constants.py b/neutron/common/ovn/constants.py
+index dd09faa68c..87d701353d 100644
+--- a/neutron/common/ovn/constants.py
++++ b/neutron/common/ovn/constants.py
+@@ -105,11 +105,13 @@ OVN_AGENT_TYPES = (OVN_CONTROLLER_AGENT,
+ 
+ # OVN ACLs have priorities.  The highest priority ACL that matches is the one
+ # that takes effect.  Our choice of priority numbers is arbitrary, but it
+-# leaves room above and below the ACLs we create.  We only need two priorities.
+-# The first is for all the things we allow.  The second is for dropping traffic
+-# by default.
++# leaves room above and below the ACLs we create.  We need three priorities.
++# The first is for all the things we allow.  The second is for per-security
++# group drop ACLs used for network logging.  The third is for the global
++# default drop in neutron_pg_drop.
+ ACL_PRIORITY_ALLOW = 1002
+-ACL_PRIORITY_DROP = 1001
++ACL_PRIORITY_LOG_DROP = 1001
++ACL_PRIORITY_DROP = 1000
+ 
+ ACL_ACTION_DROP = 'drop'
+ ACL_ACTION_REJECT = 'reject'
+diff --git a/neutron/common/ovn/utils.py b/neutron/common/ovn/utils.py
+index 86432360b8..c48f90a300 100644
+--- a/neutron/common/ovn/utils.py
++++ b/neutron/common/ovn/utils.py
+@@ -998,7 +998,7 @@ def create_neutron_pg_drop():
+                 "action": "drop",
+                 "direction": "to-lport",
+                 "match": "outport == @neutron_pg_drop && ip",
+-                "priority": 1001
++                "priority": constants.ACL_PRIORITY_DROP
+             },
+             "uuid-name": "droptoport"
+         }, {
+@@ -1008,7 +1008,7 @@ def create_neutron_pg_drop():
+                 "action": "drop",
+                 "direction": "from-lport",
+                 "match": "inport == @neutron_pg_drop && ip",
+-                "priority": 1001
++                "priority": constants.ACL_PRIORITY_DROP
+             },
+             "uuid-name": "dropfromport"
+         }, {
+diff --git a/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py b/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py
+index a95766de4c..feef136cb8 100644
+--- a/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py
++++ b/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py
+@@ -34,6 +34,7 @@ from oslo_serialization import jsonutils
+ from oslo_utils import strutils
+ from oslo_utils import timeutils
+ from ovsdbapp.backend.ovs_idl import event as row_event
++from ovsdbapp.backend.ovs_idl import rowview
+ 
+ from neutron.common.ovn import constants as ovn_const
+ from neutron.common.ovn import utils
+@@ -1522,6 +1523,42 @@ class DBInconsistenciesPeriodics(SchemaAwarePeriodicsBase):
+                 admin_context, sg_rule)
+         raise periodics.NeverAgain()
+ 
++    # TODO(mnaser): to remove in G+4 (2028.1) cycle (2nd next SLURP release)
++    @has_lock_periodic(
++        periodic_run_limit=ovn_const.MAINTENANCE_TASK_RETRY_LIMIT,
++        spacing=ovn_const.MAINTENANCE_ONE_RUN_TASK_SPACING,
++        run_immediately=True)
++    def update_neutron_pg_drop_priority(self):
++        """Ensure neutron_pg_drop ACLs are at the expected priority.
++
++        The global neutron_pg_drop ACLs must be at ACL_PRIORITY_DROP to
++        make room for per-security-group drop ACLs at ACL_PRIORITY_LOG_DROP,
++        which are used for correct network log attribution.
++        See LP#2110087.
++        """
++        expected_priority = ovn_const.ACL_PRIORITY_DROP
++        cmds = []
++        pg = self._nb_idl.lookup(
++            "Port_Group", ovn_const.OVN_DROP_PORT_GROUP_NAME, default=None)
++        if pg is None:
++            LOG.error('Port group %s was not found while updating its drop '
++                      'ACL priority', ovn_const.OVN_DROP_PORT_GROUP_NAME)
++            raise periodics.NeverAgain()
++
++        for acl in pg.acls:
++            acl = rowview.RowView(acl)
++            if acl.priority != expected_priority and acl.action == 'drop':
++                cmds.append(self._nb_idl.db_set(
++                    'ACL', acl.uuid,
++                    ('priority', expected_priority)))
++
++        if cmds:
++            with self._nb_idl.transaction(check_error=True) as txn:
++                for cmd in cmds:
++                    txn.add(cmd)
++
++        raise periodics.NeverAgain()
++
+ 
+ class HashRingHealthCheckPeriodics(object):
+ 
+diff --git a/neutron/services/logapi/drivers/ovn/driver.py b/neutron/services/logapi/drivers/ovn/driver.py
+index 7a9548a020..158f9ed352 100644
+--- a/neutron/services/logapi/drivers/ovn/driver.py
++++ b/neutron/services/logapi/drivers/ovn/driver.py
+@@ -25,6 +25,7 @@ from oslo_utils import importutils
+ from ovsdbapp.backend.ovs_idl import idlutils
+ 
+ from neutron._i18n import _
++from neutron.common.ovn import acl as acl_utils
+ from neutron.common.ovn import constants as ovn_const
+ from neutron.common.ovn import utils
+ from neutron.conf.services import logging as log_cfg
+@@ -86,10 +87,14 @@ class OVNDriver(base.DriverBase):
+         cls.__new__.__defaults__ = tuple(log_dict.values())
+         return cls()
+ 
+-    def _get_logs(self, context):
+-        log_objs = self._log_plugin.get_logs(context)
++    def _get_logs(self, context, **filters):
++        log_objs = self._log_plugin.get_logs(
++            context, filters=filters or None)
+         return [self._log_dict_to_obj(lo) for lo in log_objs]
+ 
++    def _get_logs_with_events(self, context, events, **filters):
++        return self._get_logs(context, event=list(events), **filters)
++
+     @property
+     def _ovn_client(self):
+         return self.plugin_driver._ovn_client
+@@ -178,6 +183,12 @@ class OVNDriver(base.DriverBase):
+                 # skip acls used by a different network log
+                 if acl.name and acl.name[0] != log_name:
+                     continue
++                # Don't claim ACLs whose action is not relevant to this
++                # log object; otherwise a DROP log would claim the allow
++                # ACLs and block a later ALL/ACCEPT log from updating them.
++                if not acl.name and acl.action not in actions_enabled:
++                    continue
++
+                 columns = {
+                     'log': acl.action in actions_enabled,
+                     'meter': meter_name,
+@@ -201,8 +212,12 @@ class OVNDriver(base.DriverBase):
+         for log_obj in log_objs:
+             pgs = self._pgs_from_log_obj(context, log_obj)
+             actions_enabled = self._acl_actions_enabled(log_obj)
++            log_name = utils.ovn_name(log_obj.id)
+             self._set_acls_log(pgs, context, ovn_txn, actions_enabled,
+-                               utils.ovn_name(log_obj.id))
++                               log_name)
++            if log_obj.enabled:
++                self._create_sg_drop_acls(context, log_obj, ovn_txn,
++                                          log_name)
+ 
+     def _pgs_all(self):
+         return self.ovn_nb.db_list(
+@@ -236,21 +251,11 @@ class OVNDriver(base.DriverBase):
+                 return pgs
+             except idlutils.RowNotFound:
+                 pass
+-        pgs = []
+-        # include special pg_drop to log DROP and ALL actions
+-        if not log_obj.event or log_obj.event in (log_const.DROP_EVENT,
+-                                                  log_const.ALL_EVENT):
+-            try:
+-                pg = self.ovn_nb.lookup("Port_Group",
+-                                        ovn_const.OVN_DROP_PORT_GROUP_NAME)
+-                pgs.append({"name": pg.name,
+-                            "external_ids": pg.external_ids,
+-                            "acls": [r.uuid for r in pg.acls]})
+-            except idlutils.RowNotFound:
+-                pass
+-            if log_obj.event == log_const.DROP_EVENT:
+-                return pgs
++        return self._get_sg_port_groups(context, log_obj)
+ 
++    def _get_sg_port_groups(self, context, log_obj):
++        """Get port groups for the security groups targeted by a log object."""
++        pgs = []
+         if log_obj.resource_id:
+             try:
+                 pg = self.ovn_nb.lookup("Port_Group",
+@@ -261,8 +266,6 @@ class OVNDriver(base.DriverBase):
+                             "acls": [r.uuid for r in pg.acls]})
+             except idlutils.RowNotFound:
+                 pass
+-            # Note: when sg is provided, it is redundant to get sgs from port,
+-            # because model will ensure that sg is associated with neutron port
+         elif log_obj.target_id:
+             sg_ids = db_api._get_sgs_attached_to_port(context,
+                                                       log_obj.target_id)
+@@ -277,6 +280,49 @@ class OVNDriver(base.DriverBase):
+                     pass
+         return pgs
+ 
++    def _create_sg_drop_acls(self, context, log_obj, ovn_txn, log_name):
++        """Create per-SG drop ACLs for network log attribution.
++
++        When logging DROP events for a specific security group, we create
++        drop ACLs on the SG's port group at a higher priority than the
++        global neutron_pg_drop. This ensures drop events are correctly
++        attributed to the specific security group's log resource.
++        """
++        if log_obj.event not in (log_const.DROP_EVENT, log_const.ALL_EVENT):
++            return
++        sg_pgs = self._get_sg_port_groups(context, log_obj)
++        if not sg_pgs:
++            return
++        for pg in sg_pgs:
++            for acl in acl_utils.add_acls_for_log_drop_port_group(
++                    pg["name"], log_name, self.meter_name):
++                ovn_txn.add(self.ovn_nb.pg_acl_add(**acl, may_exist=True))
++
++    def _remove_sg_drop_acls(self, context, log_obj, ovn_txn):
++        """Remove per-SG drop ACLs created for network log attribution."""
++        sg_pgs = self._get_sg_port_groups(context, log_obj)
++        if not sg_pgs:
++            return
++        for pg in sg_pgs:
++            for direction, p in (('from-lport', 'inport'),
++                                 ('to-lport', 'outport')):
++                ovn_txn.add(self.ovn_nb.pg_acl_del(
++                    pg["name"], direction,
++                    ovn_const.ACL_PRIORITY_LOG_DROP,
++                    f'{p} == @{pg["name"]} && ip'))
++
++    def _other_logs_need_sg_drop_acls(self, context, log_obj):
++        """Check if other enabled logs still need per-SG drop ACLs."""
++        drop_events = (log_const.DROP_EVENT, log_const.ALL_EVENT)
++        filters = {'enabled': True}
++        if log_obj.resource_id:
++            filters['resource_id'] = [None, log_obj.resource_id]
++
++        for log in self._get_logs_with_events(context, drop_events, **filters):
++            if log.id != log_obj.id:
++                return True
++        return False
++
+     def create_log(self, context, log_obj):
+         """Create a log_obj invocation.
+ 
+@@ -287,11 +333,13 @@ class OVNDriver(base.DriverBase):
+ 
+         pgs = self._pgs_from_log_obj(context, log_obj)
+         actions_enabled = self._acl_actions_enabled(log_obj)
++        log_name = utils.ovn_name(log_obj.id)
+         with self.ovn_nb.transaction(check_error=True) as ovn_txn:
+             self._ovn_client.create_ovn_fair_meter(self.meter_name,
+                                                    txn=ovn_txn)
+             self._set_acls_log(pgs, context, ovn_txn, actions_enabled,
+-                               utils.ovn_name(log_obj.id))
++                               log_name)
++            self._create_sg_drop_acls(context, log_obj, ovn_txn, log_name)
+ 
+     def create_log_precommit(self, context, log_obj):
+         """Create a log_obj precommit.
+@@ -341,7 +389,8 @@ class OVNDriver(base.DriverBase):
+                                   log.resource_id == log_obj.resource_id)])
+             if (log_const.ALL_EVENT not in all_events and
+                     log_obj.event not in all_events):
+-                self._remove_acls_log(pgs, ovn_txn)
++                self._remove_acls_log(pgs, ovn_txn,
++                                      utils.ovn_name(log_obj.id))
+         return True
+ 
+     def update_log(self, context, log_obj):
+@@ -353,13 +402,19 @@ class OVNDriver(base.DriverBase):
+         """
+         LOG.debug("Update_log %s", log_obj)
+ 
++        log_name = utils.ovn_name(log_obj.id)
+         with self.ovn_nb.transaction(check_error=True) as ovn_txn:
+ 
+             if not self._unset_disabled_acls(context, log_obj, ovn_txn):
+                 pgs = self._pgs_from_log_obj(context, log_obj)
+                 actions_enabled = self._acl_actions_enabled(log_obj)
+                 self._set_acls_log(pgs, context, ovn_txn, actions_enabled,
+-                                   utils.ovn_name(log_obj.id))
++                                   log_name)
++            if log_obj.enabled:
++                self._create_sg_drop_acls(context, log_obj, ovn_txn,
++                                          log_name)
++            elif not self._other_logs_need_sg_drop_acls(context, log_obj):
++                self._remove_sg_drop_acls(context, log_obj, ovn_txn)
+ 
+     def delete_log(self, context, log_obj):
+         """Delete a log_obj invocation.
+@@ -378,6 +433,7 @@ class OVNDriver(base.DriverBase):
+             pgs = self._pgs_all()
+             with self.ovn_nb.transaction(check_error=True) as ovn_txn:
+                 self._remove_acls_log(pgs, ovn_txn)
++                self._remove_sg_drop_acls(context, log_obj, ovn_txn)
+                 ovn_txn.add(self.ovn_nb.meter_del(self.meter_name,
+                                                   if_exists=True))
+                 ovn_txn.add(self.ovn_nb.meter_del(
+@@ -392,6 +448,7 @@ class OVNDriver(base.DriverBase):
+         pgs = self._pgs_from_log_obj(context, log_obj)
+         with self.ovn_nb.transaction(check_error=True) as ovn_txn:
+             self._remove_acls_log(pgs, ovn_txn, utils.ovn_name(log_obj.id))
++            self._remove_sg_drop_acls(context, log_obj, ovn_txn)
+ 
+         # TODO(flaviof): We needed to break this second part into a separate
+         # transaction because logic that determines the value of the 'freed up'
+@@ -455,6 +512,9 @@ class OVNDriver(base.DriverBase):
+                 n_acl_name = acl['name']
+                 if n_acl_name and n_acl_name != log_name:
+                     continue
++                # Don't claim ACLs whose action is not relevant
++                if not n_acl_name and acl['action'] not in actions_enabled:
++                    continue
+                 action = acl['action'] in actions_enabled
+                 acl['log'] = action
+                 acl['meter'] = meter_name
+diff --git a/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_resources.py b/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_resources.py
+index 76f0bf262c..b7f5daa773 100644
+--- a/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_resources.py
++++ b/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_resources.py
+@@ -855,11 +855,11 @@ class TestPortSecurity(base.TestOVNFunctionalBase):
+         expected_acls_with_sg_ps_enabled = [
+             {'match': 'inport == @neutron_pg_drop && ip',
+              'action': 'drop',
+-             'priority': 1001,
++             'priority': ovn_const.ACL_PRIORITY_DROP,
+              'direction': 'from-lport'},
+             {'match': 'outport == @neutron_pg_drop && ip',
+              'action': 'drop',
+-             'priority': 1001,
++             'priority': ovn_const.ACL_PRIORITY_DROP,
+              'direction': 'to-lport'},
+             {'match': 'inport == @' + pg_name + ' && ip6',
+              'action': 'allow-related',
+@@ -892,11 +892,11 @@ class TestPortSecurity(base.TestOVNFunctionalBase):
+         expected_acls_with_no_sg_ps_enabled = [
+             {'match': 'inport == @neutron_pg_drop && ip',
+              'action': 'drop',
+-             'priority': 1001,
++             'priority': 1000,
+              'direction': 'from-lport'},
+             {'match': 'outport == @neutron_pg_drop && ip',
+              'action': 'drop',
+-             'priority': 1001,
++             'priority': 1000,
+              'direction': 'to-lport'},
+         ]
+         self._verify_port_acls(port_id, expected_acls_with_no_sg_ps_enabled)
+diff --git a/neutron/tests/functional/services/logapi/drivers/ovn/test_driver.py b/neutron/tests/functional/services/logapi/drivers/ovn/test_driver.py
+index fb5bd58c68..895f46a743 100644
+--- a/neutron/tests/functional/services/logapi/drivers/ovn/test_driver.py
++++ b/neutron/tests/functional/services/logapi/drivers/ovn/test_driver.py
+@@ -160,7 +160,9 @@ class LogApiTestCaseComplex(LogApiTestCaseBase):
+                 self.assertIsNone(acl.options.get("log-related"))
+         return acl
+ 
+-    def _check_acl_log_drop(self, is_enabled=True):
++    def _check_acl_log_drop(self, is_enabled=True, sg=None):
++        if sg:
++            return self._check_sg_drop_acls(sg, is_enabled)
+         acls = self.nb_api.get_port_group(
+             ovn_const.OVN_DROP_PORT_GROUP_NAME).acls
+         self.assertTrue(acls)
+@@ -168,6 +170,21 @@ class LogApiTestCaseComplex(LogApiTestCaseBase):
+             self.assertEqual(is_enabled, acl.log)
+         return acls
+ 
++    def _check_sg_drop_acls(self, sg_id, is_enabled=True):
++        """Check per-SG drop ACLs at LOG_DROP priority on the SG port group."""
++        pg = self.nb_api.get_port_group(utils.ovn_port_group_name(sg_id))
++        drop_acls = [acl for acl in pg.acls
++                     if acl.priority == ovn_const.ACL_PRIORITY_LOG_DROP and
++                     acl.action == ovn_const.ACL_ACTION_DROP]
++        if is_enabled:
++            self.assertTrue(drop_acls,
++                            "Expected per-SG drop ACLs but found none")
++            for acl in drop_acls:
++                self.assertTrue(acl.log)
++        else:
++            self.assertEqual([], drop_acls)
++        return drop_acls
++
+     def _check_sgrs(self, sgrs=None, is_enabled=True):
+         if not sgrs:
+             sgrs = self.sgrs
+@@ -301,13 +318,13 @@ class LogApiTestCaseComplex(LogApiTestCaseBase):
+         accept_true_events = (log_const.ALL_EVENT, log_const.ACCEPT_EVENT)
+         # Check there are no acls with their logging active
+         self._check_sgrs(sgrs=sgrs, is_enabled=False)
+-        self._check_acl_log_drop(is_enabled=False)
++        self._check_acl_log_drop(is_enabled=False, sg=sg)
+ 
+         # Add first log object
+         log_data1 = self._log_data(sg_id=sg)
+         log_data1['log']['event'] = event1
+         log_obj1 = self.log_plugin.create_log(self.ctxt, log_data1)
+-        self._check_acl_log_drop(is_enabled=event1 in drop_true_events)
++        self._check_acl_log_drop(is_enabled=event1 in drop_true_events, sg=sg)
+         self._check_sgrs(sgrs=sgrs, is_enabled=event1 in accept_true_events)
+ 
+         # Add second log object
+@@ -315,19 +332,20 @@ class LogApiTestCaseComplex(LogApiTestCaseBase):
+         log_data2['log']['event'] = event2
+         log_obj2 = self.log_plugin.create_log(self.ctxt, log_data2)
+         self._check_acl_log_drop(is_enabled=(event1 in drop_true_events or
+-            event2 in drop_true_events))
++                                             event2 in drop_true_events),
++                                 sg=sg)
+         self._check_sgrs(sgrs=sgrs, is_enabled=(event1 in accept_true_events or
+             event2 in accept_true_events))
+ 
+         # Delete second log object
+         self.log_plugin.delete_log(self.ctxt, log_obj2['id'])
+-        self._check_acl_log_drop(is_enabled=event1 in drop_true_events)
++        self._check_acl_log_drop(is_enabled=event1 in drop_true_events, sg=sg)
+         self._check_sgrs(sgrs=sgrs, is_enabled=event1 in accept_true_events)
+ 
+         # Delete first log object
+         self.log_plugin.delete_log(self.ctxt, log_obj1['id'])
+         self._check_sgrs(sgrs=sgrs, is_enabled=False)
+-        self._check_acl_log_drop(is_enabled=False)
++        self._check_acl_log_drop(is_enabled=False, sg=sg)
+ 
+     def test_events_all_sg(self):
+         self._add_logs_then_remove(log_const.DROP_EVENT, log_const.ALL_EVENT)
+@@ -353,14 +371,14 @@ class LogApiTestCaseComplex(LogApiTestCaseBase):
+         # Check there are no acls with their logging active
+         sgrs = self.sg1rs
+         self._check_sgrs(sgrs, is_enabled=False)
+-        self._check_acl_log_drop(is_enabled=False)
++        self._check_acl_log_drop(is_enabled=False, sg=self.sg1)
+ 
+         # Add accept log object
+         log_data1 = self._log_data(sg_id=self.sg1)
+         event1 = log_const.ACCEPT_EVENT
+         log_data1['log']['event'] = event1
+         log_obj1 = self.log_plugin.create_log(self.ctxt, log_data1)
+-        self._check_acl_log_drop(is_enabled=False)
++        self._check_acl_log_drop(is_enabled=False, sg=self.sg1)
+         self._check_sgrs(sgrs=sgrs, is_enabled=True)
+ 
+         # Add drop log object
+@@ -368,36 +386,36 @@ class LogApiTestCaseComplex(LogApiTestCaseBase):
+         event2 = log_const.DROP_EVENT
+         log_data2['log']['event'] = event2
+         log_obj2 = self.log_plugin.create_log(self.ctxt, log_data2)
+-        self._check_acl_log_drop(is_enabled=True)
++        self._check_acl_log_drop(is_enabled=True, sg=self.sg1)
+         self._check_sgrs(sgrs=sgrs, is_enabled=True)
+ 
+         # Disable drop log object and check it worked correctly
+         log_data2['log']['enabled'] = False
+         self.log_plugin.update_log(self.ctxt, log_obj2['id'], log_data2)
+-        self._check_acl_log_drop(is_enabled=False)
++        self._check_acl_log_drop(is_enabled=False, sg=self.sg1)
+         self._check_sgrs(sgrs=sgrs, is_enabled=True)
+ 
+         # Enable drop log and create all log object
+         log_data2['log']['enabled'] = True
+         self.log_plugin.update_log(self.ctxt, log_obj2['id'], log_data2)
+-        self._check_acl_log_drop(is_enabled=True)
++        self._check_acl_log_drop(is_enabled=True, sg=self.sg1)
+         self._check_sgrs(sgrs=sgrs, is_enabled=True)
+ 
+         log_data3 = self._log_data(sg_id=self.sg1)
+         log_data3['log']['event'] = log_const.ALL_EVENT
+         log_obj3 = self.log_plugin.create_log(self.ctxt, log_data3)
+         self._check_sgrs(sgrs=sgrs, is_enabled=True)
+-        self._check_acl_log_drop(is_enabled=True)
++        self._check_acl_log_drop(is_enabled=True, sg=self.sg1)
+ 
+         # Disable all log object and check all acls are still enabled (because
+         # of the other objects)
+         log_data3['log']['enabled'] = False
+         self.log_plugin.update_log(self.ctxt, log_obj3['id'], log_data3)
+         self._check_sgrs(sgrs=sgrs, is_enabled=True)
+-        self._check_acl_log_drop(is_enabled=True)
++        self._check_acl_log_drop(is_enabled=True, sg=self.sg1)
+ 
+         # Disable accept log object and only drop traffic gets logged
+         log_data1['log']['enabled'] = False
+         self.log_plugin.update_log(self.ctxt, log_obj1['id'], log_data1)
+         self._check_sgrs(sgrs=sgrs, is_enabled=False)
+-        self._check_acl_log_drop(is_enabled=True)
++        self._check_acl_log_drop(is_enabled=True, sg=self.sg1)
+diff --git a/neutron/tests/unit/common/ovn/test_acl.py b/neutron/tests/unit/common/ovn/test_acl.py
+index 3258c48d82..99fe37ea43 100644
+--- a/neutron/tests/unit/common/ovn/test_acl.py
++++ b/neutron/tests/unit/common/ovn/test_acl.py
+@@ -60,7 +60,7 @@ class TestACLs(base.BaseTestCase):
+                         'lport': self.fake_port['id'],
+                         'lswitch': 'neutron-network_id1',
+                         'match': 'outport == "fake_port_id1" && ip',
+-                        'priority': 1001,
++                        'priority': 1000,
+                         'meter': []}
+         acl_from_lport = {'action': 'drop', 'direction': 'from-lport',
+                           'external_ids': {'neutron:lport':
+@@ -69,7 +69,7 @@ class TestACLs(base.BaseTestCase):
+                           'lport': self.fake_port['id'],
+                           'lswitch': 'neutron-network_id1',
+                           'match': 'inport == "fake_port_id1" && ip',
+-                          'priority': 1001,
++                          'priority': 1000,
+                           'meter': []}
+         for acl in acls:
+             if 'to-lport' in acl.values():
+diff --git a/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py b/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py
+index a4440febc9..58016a94de 100644
+--- a/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py
++++ b/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py
+@@ -1343,3 +1343,15 @@ class TestDBInconsistenciesPeriodics(testlib_api.SqlTestCaseLight,
+             mock.call(sroute_a, external_ids=external_ids),
+             mock.call(sroute_b, external_ids=external_ids),
+         ])
++
++    @mock.patch.object(maintenance.LOG, 'error')
++    def test_update_neutron_pg_drop_priority_missing_port_group(self, m_error):
++        self.fake_ovn_client._nb_idl.lookup.return_value = None
++
++        self.assertRaises(periodics.NeverAgain,
++                          self.periodic.update_neutron_pg_drop_priority)
++
++        self.fake_ovn_client._nb_idl.lookup.assert_called_once_with(
++            'Port_Group', constants.OVN_DROP_PORT_GROUP_NAME, default=None)
++        m_error.assert_called_once()
++        self.fake_ovn_client._nb_idl.db_set.assert_not_called()
+diff --git a/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_sync.py b/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_sync.py
+index 7bf90293ba..1ec7928cb1 100644
+--- a/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_sync.py
++++ b/neutron/tests/unit/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_ovn_db_sync.py
+@@ -255,7 +255,7 @@ class TestOvnNbSyncML2(test_mech_driver.OVNMechanismDriverTestCase):
+                     direction='to-lport',
+                     action='drop',
+                     log=False,
+-                    priority=1001,
++                    priority=1000,
+                     match=('outport == @%s && ip' %
+                            ovn_const.OVN_DROP_PORT_GROUP_NAME),
+                     external_ids={}
+@@ -267,7 +267,7 @@ class TestOvnNbSyncML2(test_mech_driver.OVNMechanismDriverTestCase):
+                     direction='from-lport',
+                     action='drop',
+                     log=False,
+-                    priority=1001,
++                    priority=1000,
+                     match=('inport == @%s && ip' %
+                            ovn_const.OVN_DROP_PORT_GROUP_NAME),
+                     external_ids={}
+@@ -550,9 +550,9 @@ class TestOvnNbSyncML2(test_mech_driver.OVNMechanismDriverTestCase):
+                 for pg_acl in pg.acls:
+                     if pg.name == ovn_const.OVN_DROP_PORT_GROUP_NAME:
+                         pg_acl.log = True
+-                    pg_acl.name = ['neutron-1111']
+-                    pg_acl.severity = ['info']
+-                    pg_acl.meter = ['acl_log_meter']
++                        pg_acl.name = ['neutron-1111']
++                        pg_acl.severity = ['info']
++                        pg_acl.meter = ['acl_log_meter']
+         get_sg_port_groups.execute.return_value = self.sg_port_groups_ovn
+         ovn_api.db_list_rows.return_value = get_sg_port_groups
+         ovn_api.lsp_list.execute.return_value = self.ports_ovn
+@@ -1006,13 +1006,14 @@ class TestOvnNbSyncML2(test_mech_driver.OVNMechanismDriverTestCase):
+              'priority': 1002,
+              'action': 'allow-related',
+              'log': False,
+-             'name': 'neutron-1111' if test_logging else [],
+-             'severity': 'info' if test_logging else [],
++             'name': [],
++             'severity': [],
+              'direction': 'from-lport',
+              'match': ('inport == @pg_sg2 && ip4 && tcp && '
+                        'tcp.dst >= 1 && tcp.dst <= 65535'),
+-             'meter': 'acl_log_meter' if test_logging else [],
+-             ovn_const.OVN_SG_RULE_EXT_ID_KEY: 'ruleid2'},
++             'meter': [],
++             ovn_const.OVN_SG_RULE_EXT_ID_KEY: 'ruleid2'
++             },
+         ]
+         del_acls_list = [
+             ('pg_sg_stale', 'to-lport', 1000, 'outport == @pg_sg_stale')]
+diff --git a/neutron/tests/unit/services/logapi/drivers/ovn/test_driver.py b/neutron/tests/unit/services/logapi/drivers/ovn/test_driver.py
+index 9ca01251b6..9a6693e5c9 100644
+--- a/neutron/tests/unit/services/logapi/drivers/ovn/test_driver.py
++++ b/neutron/tests/unit/services/logapi/drivers/ovn/test_driver.py
+@@ -139,18 +139,63 @@ class TestOVNDriver(TestOVNDriverBase):
+ 
+     def _fake_pg(self, **kwargs):
+         pg_dict = self._fake_pg_dict(**kwargs)
+-        return mock.Mock(**pg_dict)
++        pg_name = pg_dict.pop('name', None)
++        pg = mock.Mock(**pg_dict)
++        pg.name = pg_name
++        return pg
+ 
+     def _fake_log_obj(self, **kwargs):
++        log_id = uuidutils.generate_uuid()
+         log_obj_defaults_dict = {
+-            'uuid': uuidutils.generate_uuid(),
++            'id': log_id,
++            'uuid': log_id,
+             'resource_id': None,
+             'target_id': None,
+             'event': log_const.ALL_EVENT,
++            'enabled': True,
+         }
+         log_obj_obj_dict = {**log_obj_defaults_dict, **kwargs}
+         return mock.Mock(**log_obj_obj_dict)
+ 
++    def _fake_log_dict(self, **kwargs):
++        log_id = uuidutils.generate_uuid()
++        log_dict_defaults = {
++            'id': log_id,
++            'project_id': uuidutils.generate_uuid(),
++            'name': 'test-log',
++            'resource_type': log_const.SECURITY_GROUP,
++            'resource_id': None,
++            'target_id': None,
++            'event': log_const.ALL_EVENT,
++            'enabled': True,
++        }
++        return {**log_dict_defaults, **kwargs}
++
++    def test__get_logs_with_filters(self):
++        self.log_plugin.get_logs.return_value = [self._fake_log_dict()]
++
++        log_objs = self._log_driver._get_logs(
++            self.context, enabled=True, event=log_const.DROP_EVENT)
++
++        self.log_plugin.get_logs.assert_called_once_with(
++            self.context, filters={'enabled': True,
++                                   'event': log_const.DROP_EVENT})
++        self.assertEqual(1, len(log_objs))
++
++    def test__other_logs_need_sg_drop_acls_uses_filtered_queries(self):
++        log_obj = self._fake_log_obj(id='current-log', resource_id='sg-id')
++        self.log_plugin.get_logs.return_value = []
++
++        self.assertFalse(
++            self._log_driver._other_logs_need_sg_drop_acls(
++                self.context, log_obj))
++
++        self.log_plugin.get_logs.assert_called_once_with(
++            self.context, filters={'enabled': True,
++                                   'resource_id': [None, 'sg-id'],
++                                   'event': [log_const.DROP_EVENT,
++                                             log_const.ALL_EVENT]})
++
+     def test__pgs_from_log_obj_pg_all(self):
+         expected_pgs = [self._fake_pg()]
+         with mock.patch.object(self._log_driver, '_pgs_all',
+@@ -167,30 +212,18 @@ class TestOVNDriver(TestOVNDriverBase):
+             log_obj = self._fake_log_obj(target_id='target_id')
+             pgs = self._log_driver._pgs_from_log_obj(self.context, log_obj)
+             mock_pgs_all.assert_not_called()
+-            self._nb_ovn.lookup.assert_called_once_with(
+-                "Port_Group", ovn_const.OVN_DROP_PORT_GROUP_NAME)
+             self.fake_get_sgs_attached_to_port.assert_called_once_with(
+                 self.context, 'target_id')
+             self.assertEqual([], pgs)
+ 
+-    def test__pgs_from_log_obj_pg_drop(self):
++    def test__pgs_from_log_obj_sg_not_found(self):
+         with mock.patch.object(self._log_driver, '_pgs_all',
+                                return_value=[]) as mock_pgs_all:
+-            pg = self._fake_pg()
+-
+-            def _mock_lookup(_pg_table, pg_name):
+-                if pg_name == ovn_const.OVN_DROP_PORT_GROUP_NAME:
+-                    return pg
+-                raise idlutils.RowNotFound
+-
+-            self._nb_ovn.lookup.side_effect = _mock_lookup
++            self._nb_ovn.lookup.side_effect = idlutils.RowNotFound
+             log_obj = self._fake_log_obj(resource_id='resource_id')
+             pgs = self._log_driver._pgs_from_log_obj(self.context, log_obj)
+             mock_pgs_all.assert_not_called()
+-            self.assertEqual(2, self._nb_ovn.lookup.call_count)
+-            self.assertEqual([{'acls': [],
+-                               'external_ids': pg.external_ids,
+-                               'name': pg.name}], pgs)
++            self.assertEqual([], pgs)
+ 
+     def test__pgs_from_log_obj_pg(self):
+         with mock.patch.object(self._log_driver, '_pgs_all',
+@@ -335,7 +368,7 @@ class TestOVNDriver(TestOVNDriverBase):
+                            'external_ids': {},
+                            'acls': [uuidutils.generate_uuid()]}]).start()
+         neutron_acl = {'port_group': 'neutron_pg_drop',
+-                       'priority': 1001,
++                       'priority': 1000,
+                        'action': 'drop',
+                        'log': True,
+                        'name': '',
+@@ -348,12 +381,111 @@ class TestOVNDriver(TestOVNDriverBase):
+             self._log_driver.add_label_related(neutron_acl, self.context)
+             self.assertNotEqual(neutron_acl['label'], 0)
+ 
++    def test__get_sg_port_groups_with_resource_id(self):
++        sg_id = uuidutils.generate_uuid()
++        pg_name = ovn_utils.ovn_port_group_name(sg_id)
++        pg = self._fake_pg(name=pg_name,
++                           external_ids={ovn_const.OVN_SG_EXT_ID_KEY: sg_id})
++        self._nb_ovn.lookup.return_value = pg
++        log_obj = self._fake_log_obj(resource_id=sg_id)
++        pgs = self._log_driver._get_sg_port_groups(self.context, log_obj)
++        self._nb_ovn.lookup.assert_called_once_with("Port_Group", pg_name)
++        self.assertEqual(1, len(pgs))
++        self.assertEqual(pg.name, pgs[0]["name"])
++
++    def test__get_sg_port_groups_with_target_id(self):
++        sg_id = uuidutils.generate_uuid()
++        pg_name = ovn_utils.ovn_port_group_name(sg_id)
++        pg = self._fake_pg(name=pg_name,
++                           external_ids={ovn_const.OVN_SG_EXT_ID_KEY: sg_id})
++        self._nb_ovn.lookup.return_value = pg
++        self.fake_get_sgs_attached_to_port.return_value = [sg_id]
++        log_obj = self._fake_log_obj(target_id='port_id')
++        pgs = self._log_driver._get_sg_port_groups(self.context, log_obj)
++        self.fake_get_sgs_attached_to_port.assert_called_once_with(
++            self.context, 'port_id')
++        self.assertEqual(1, len(pgs))
++
++    def test__get_sg_port_groups_not_found(self):
++        self._nb_ovn.lookup.side_effect = idlutils.RowNotFound
++        log_obj = self._fake_log_obj(resource_id='missing_sg')
++        pgs = self._log_driver._get_sg_port_groups(self.context, log_obj)
++        self.assertEqual([], pgs)
++
++    def test__create_sg_drop_acls(self):
++        sg_id = uuidutils.generate_uuid()
++        pg_name = ovn_utils.ovn_port_group_name(sg_id)
++        pg = self._fake_pg(name=pg_name,
++                           external_ids={ovn_const.OVN_SG_EXT_ID_KEY: sg_id})
++        self._nb_ovn.lookup.return_value = pg
++        log_obj = self._fake_log_obj(resource_id=sg_id,
++                                     event=log_const.DROP_EVENT)
++        log_name = ovn_utils.ovn_name(log_obj.id)
++        with self._nb_ovn.transaction(check_error=True) as ovn_txn:
++            self._log_driver._create_sg_drop_acls(
++                self.context, log_obj, ovn_txn, log_name)
++        # Should have called pg_acl_add twice (from-lport and to-lport)
++        self.assertEqual(2, self._nb_ovn.pg_acl_add.call_count)
++        calls = self._nb_ovn.pg_acl_add.call_args_list
++        for call in calls:
++            self.assertEqual(ovn_const.ACL_PRIORITY_LOG_DROP,
++                             call.kwargs.get('priority',
++                                             call.args[1] if len(call.args) > 1
++                                             else None))
++
++    def test__create_sg_drop_acls_accept_event_skipped(self):
++        sg_id = uuidutils.generate_uuid()
++        pg = self._fake_pg()
++        self._nb_ovn.lookup.return_value = pg
++        log_obj = self._fake_log_obj(resource_id=sg_id,
++                                     event=log_const.ACCEPT_EVENT)
++        with self._nb_ovn.transaction(check_error=True) as ovn_txn:
++            self._log_driver._create_sg_drop_acls(
++                self.context, log_obj, ovn_txn, 'log_name')
++        self._nb_ovn.pg_acl_add.assert_not_called()
++
++    def test__remove_sg_drop_acls(self):
++        sg_id = uuidutils.generate_uuid()
++        pg_name = ovn_utils.ovn_port_group_name(sg_id)
++        pg = self._fake_pg(name=pg_name,
++                           external_ids={ovn_const.OVN_SG_EXT_ID_KEY: sg_id})
++        self._nb_ovn.lookup.return_value = pg
++        log_obj = self._fake_log_obj(resource_id=sg_id,
++                                     event=log_const.DROP_EVENT)
++        with self._nb_ovn.transaction(check_error=True) as ovn_txn:
++            self._log_driver._remove_sg_drop_acls(
++                self.context, log_obj, ovn_txn)
++        # Should have called pg_acl_del twice (from-lport and to-lport)
++        self.assertEqual(2, self._nb_ovn.pg_acl_del.call_count)
++        calls = self._nb_ovn.pg_acl_del.call_args_list
++        directions = {call.args[1] for call in calls}
++        self.assertEqual({'from-lport', 'to-lport'}, directions)
++        for call in calls:
++            self.assertEqual(ovn_const.ACL_PRIORITY_LOG_DROP, call.args[2])
++            direction = call.args[1]
++            p = 'inport' if direction == 'from-lport' else 'outport'
++            expected_match = f'{p} == @{pg_name} && ip'
++            self.assertEqual(expected_match, call.args[3])
++
++    def test__pgs_from_log_obj_drop_with_resource_uses_sg_pg(self):
++        """When logging DROP for a specific SG, use per-SG port group."""
++        sg_id = uuidutils.generate_uuid()
++        pg_name = ovn_utils.ovn_port_group_name(sg_id)
++        pg = self._fake_pg(name=pg_name,
++                           external_ids={ovn_const.OVN_SG_EXT_ID_KEY: sg_id})
++        self._nb_ovn.lookup.return_value = pg
++        log_obj = self._fake_log_obj(resource_id=sg_id,
++                                     event=log_const.DROP_EVENT)
++        pgs = self._log_driver._pgs_from_log_obj(self.context, log_obj)
++        self.assertEqual(1, len(pgs))
++        self.assertEqual(pg.name, pgs[0]["name"])
++
+     def test_add_logging_options_to_acls(self):
+         mock.patch.object(self._log_driver, '_pgs_from_log_obj', return_value=[
+                              {'name': 'neutron_pg_drop', 'external_ids': {},
+                               'acls': [uuidutils.generate_uuid()]}]).start()
+         n_acls = [{'port_group': 'neutron_pg_drop',
+-                   'priority': 1001,
++                   'priority': 1000,
+                    'action': 'drop',
+                    'log': False,
+                    'name': '',
