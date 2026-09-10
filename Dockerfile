@@ -7,8 +7,9 @@ COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
 FROM ghcr.io/vexxhost/openstack-venv-builder:main@sha256:eca0d518696a2f3e993c378a9e84500d4492e025b1154c59b6c51985d830231f AS build
+ENV UV_INDEX=https://packages.vexxhost.com/pypi/openstack/simple/
+ARG NEUTRON_VERSION=28.0.1+a8e.30.7
 RUN \
-  --mount=type=bind,from=neutron,source=/,target=/src/neutron,readwrite \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
   --mount=type=bind,from=neutron-fwaas,source=/,target=/src/neutron-fwaas,readwrite \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
@@ -19,7 +20,7 @@ RUN \
   --mount=type=bind,from=tap-as-a-service,source=/,target=/src/tap-as-a-service,readwrite <<EOF bash -xe
 uv pip install \
     --constraint /upper-constraints.txt \
-        /src/neutron \
+        "neutron==${NEUTRON_VERSION}" \
         /src/neutron-dynamic-routing \
         /src/neutron-fwaas \
         /src/neutron-vpnaas \
