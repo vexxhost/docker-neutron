@@ -7,6 +7,7 @@ COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
 FROM ghcr.io/vexxhost/openstack-venv-builder:2023.1@sha256:fec14b623b0d11db3ed43e83b0ff1a653724e6b2b74f1a08a30a544878647315 AS build
+ENV UV_INDEX=https://packages.vexxhost.com/pypi/openstack/simple/
 ARG NEUTRON_VERSION=22.2.1+a8e.49.5
 RUN \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
