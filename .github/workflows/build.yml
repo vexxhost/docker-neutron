@@ -19,11 +19,6 @@ jobs:
     steps:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@d048c9245c93c10c06d42d1ea9311fcd3d416530 # main
         with:
-          repository: openstack/neutron
-          ref: e415739e74bc7a48a5b8801a40883ea873007949 # stable/2025.2
-
-      - uses: vexxhost/docker-atmosphere/.github/actions/checkout@d048c9245c93c10c06d42d1ea9311fcd3d416530 # main
-        with:
           repository: openstack/neutron-dynamic-routing
           ref: 229ef20405f7767ebcb7a4e865ee11f874026306 # stable/2025.2
 
@@ -72,7 +67,6 @@ jobs:
         with:
           image-name: neutron
           build-contexts: |
-            neutron=openstack/neutron
             neutron-dynamic-routing=openstack/neutron-dynamic-routing
             neutron-fwaas=openstack/neutron-fwaas
             neutron-vpnaas=openstack/neutron-vpnaas

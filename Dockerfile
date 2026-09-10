@@ -7,6 +7,7 @@ COPY --from=ovsinit-src / /src
 RUN cargo install --path .
 
 FROM ghcr.io/vexxhost/openstack-venv-builder:2025.2@sha256:58c59166bf4149f1d959aadc84e07fdb737bdb99c86e69dfa5c19dcdec7c7555 AS build
+ENV UV_INDEX=https://packages.vexxhost.com/pypi/openstack/simple/
 ARG NEUTRON_VERSION=27.0.3+a8e.19.7
 RUN \
   --mount=type=bind,from=neutron-dynamic-routing,source=/,target=/src/neutron-dynamic-routing,readwrite \
