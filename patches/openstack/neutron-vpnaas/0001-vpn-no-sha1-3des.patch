@@ -1,0 +1,101 @@
+From 5e599840f101d088525ad65f2b56a65ce62c9f43 Mon Sep 17 00:00:00 2001
+From: Rodolfo Alonso Hernandez <ralonsoh@redhat.com>
+Date: Tue, 15 Sep 2026 13:16:42 GMT
+Subject: [PATCH] Add support for ``vpn-no-sha1-3des`` API extension
+
+Wire up the ``vpn-no-sha1-3des`` API extension definition from
+neutron-lib. When loaded, this extension removes the deprecated
+``sha1`` and ``3des`` algorithms from VPN IKE and IPsec policy
+choices and changes the default ``auth_algorithm`` to ``sha256``.
+
+Related-Bug: #2146531
+Assisted-By: Composer 2.5
+Signed-off-by: Rodolfo Alonso Hernandez <ralonsoh@redhat.com>
+Change-Id: I0125f1b5485e71a3481ee1e2d26004ee167c2717
+
+(cherry picked from commit 5e599840f101d088525ad65f2b56a65ce62c9f43)
+[Backport: refresh plugin-list context for
+574bed1358e668364e3a69a91f249fd65cb11911; no functional changes.]
+---
+
+diff --git a/neutron_vpnaas/extensions/vpn_no_sha1_3des.py b/neutron_vpnaas/extensions/vpn_no_sha1_3des.py
+new file mode 100644
+--- /dev/null
++++ b/neutron_vpnaas/extensions/vpn_no_sha1_3des.py
+@@ -0,0 +1,37 @@
++# Copyright 2025 Red Hat, Inc.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++#
++
++from neutron_lib.api.definitions import vpn_no_sha1_3des
++from neutron_lib.api import extensions
++from neutron_lib.plugins import constants as nconstants
++
++from neutron.api.v2 import resource_helper
++
++
++class Vpn_no_sha1_3des(extensions.APIExtensionDescriptor):
++    api_definition = vpn_no_sha1_3des
++
++    @classmethod
++    def get_resources(cls):
++        special_mappings = {'ikepolicies': 'ikepolicy',
++                            'ipsecpolicies': 'ipsecpolicy'}
++        plural_mappings = resource_helper.build_plural_mappings(
++            special_mappings, vpn_no_sha1_3des.RESOURCE_ATTRIBUTE_MAP)
++        return resource_helper.build_resource_info(
++            plural_mappings,
++            vpn_no_sha1_3des.RESOURCE_ATTRIBUTE_MAP,
++            nconstants.VPN,
++            register_quota=True,
++            translate_name=True)
+diff --git a/neutron_vpnaas/services/vpn/ovn_plugin.py b/neutron_vpnaas/services/vpn/ovn_plugin.py
+--- a/neutron_vpnaas/services/vpn/ovn_plugin.py
++++ b/neutron_vpnaas/services/vpn/ovn_plugin.py
+@@ -63,7 +63,8 @@
+                                    "vpn-endpoint-groups",
+                                    "service-type",
+                                    "vpn-agent-scheduler",
+-                                   "vpn-aes-ctr"]
++                                   "vpn-aes-ctr",
++                                   "vpn-no-sha1-3des"]
+     path_prefix = "/vpn"
+
+
+diff --git a/neutron_vpnaas/services/vpn/plugin.py b/neutron_vpnaas/services/vpn/plugin.py
+--- a/neutron_vpnaas/services/vpn/plugin.py
++++ b/neutron_vpnaas/services/vpn/plugin.py
+@@ -47,7 +47,8 @@
+                                    "vpn-endpoint-groups",
+                                    "service-type",
+                                    "vpn-flavors",
+-                                   "vpn-aes-ctr"]
++                                   "vpn-aes-ctr",
++                                   "vpn-no-sha1-3des"]
+     path_prefix = "/vpn"
+
+
+diff --git a/releasenotes/notes/vpn-no-sha1-3des-extension-c7d2e4f1a8b63905.yaml b/releasenotes/notes/vpn-no-sha1-3des-extension-c7d2e4f1a8b63905.yaml
+new file mode 100644
+--- /dev/null
++++ b/releasenotes/notes/vpn-no-sha1-3des-extension-c7d2e4f1a8b63905.yaml
+@@ -0,0 +1,8 @@
++---
++features:
++  - |
++    Added support for the ``vpn-no-sha1-3des`` API extension. When this
++    extension is loaded, the deprecated ``sha1`` authentication algorithm
++    and ``3des`` encryption algorithm are removed from VPN IKE and IPsec
++    policy choices, and the default ``auth_algorithm`` changes from
++    ``sha1`` to ``sha256``.
