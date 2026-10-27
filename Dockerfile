@@ -13,7 +13,7 @@ RUN \
   --mount=type=bind,from=neutron-vpnaas,source=/,target=/src/neutron-vpnaas,readwrite \
   --mount=type=bind,from=networking-baremetal,source=/,target=/src/networking-baremetal,readwrite \
   --mount=type=bind,from=networking-generic-switch,source=/,target=/src/networking-generic-switch,readwrite \
-  --mount=type=bind,from=neutron-policy-server,source=/,target=/src/neutron-policy-server,readwrite \
+  --mount=type=bind,from=neutron-policy-checks,source=/,target=/src/neutron-policy-checks,readwrite \
   --mount=type=bind,from=neutron-ovn-network-logging-parser,source=/,target=/src/neutron-ovn-network-logging-parser,readwrite <<EOF bash -xe
 uv pip install \
     --constraint /upper-constraints.txt \
@@ -22,7 +22,7 @@ uv pip install \
         /src/neutron-vpnaas \
         /src/networking-baremetal \
         /src/networking-generic-switch \
-        /src/neutron-policy-server \
+        /src/neutron-policy-checks \
         /src/neutron-ovn-network-logging-parser \
         pymemcache
 EOF
