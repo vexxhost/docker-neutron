@@ -34,8 +34,8 @@ jobs:
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
-          repository: vexxhost/neutron-policy-server
-          ref: 306ee8f33e2e6a18c6b6ed1ec275238c6dcc27e5
+          repository: vexxhost/neutron-policy-checks
+          ref: 3d38fb65230131242c38e11dd2b2996306870008
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
@@ -55,7 +55,7 @@ jobs:
             neutron=openstack/neutron
             neutron-vpnaas=openstack/neutron-vpnaas
             networking-baremetal=openstack/networking-baremetal
-            neutron-policy-server=vexxhost/neutron-policy-server
+            neutron-policy-checks=vexxhost/neutron-policy-checks
             neutron-ovn-network-logging-parser=vexxhost/neutron-ovn-network-logging-parser
             ovsinit-src=vexxhost/atmosphere/crates/ovsinit
           push: ${{ github.event_name != 'pull_request' }}
