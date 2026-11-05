@@ -1,0 +1,284 @@
+From baf9abbc5c882edc036877dd779c00b096d8791a Mon Sep 17 00:00:00 2001
+From: Rodolfo Alonso Hernandez <ralonsoh@redhat.com>
+Date: Wed, 18 Feb 2026 10:55:09 +0100
+Subject: [PATCH] [OVN] New configuration variables to control the OVN BFD
+ settings
+
+Neutron can control the OVN BFD settings with the following static
+configuration parameters:
+* normal: default OVN values
+  * bfd-min-rx: 1000
+  * bfd-min-tx: 100
+  * bfd-mult: 3
+* aggressive
+  * bfd-min-rx: 1000 / 2
+  * bfd-min-tx: 100
+  * bfd-mult: 3
+* conservative
+  * bfd-min-rx: 1000
+  * bfd-min-tx: 100
+  * bfd-mult: 3 * 2
+* manual: the three parameters values will be read from the
+  configuration file.
+
+The HA failover time can be calculated in the following way:
+  failover time = max(bfd_min_rx, bfd_min_tx) * bfd_mult (== 3 sec default)
+
+Closes-Bug: #2142096
+Signed-off-by: Rodolfo Alonso Hernandez <ralonsoh@redhat.com>
+Change-Id: Ic25edbe593c7f6c9241592e50b562aca2a159f45
+(cherry picked from commit 78bf1fcc2995629f0a28a19f2b7096efc3059e3f)
+---
+ doc/source/admin/ovn/routing.rst              | 32 +++++++++++++
+ neutron/common/ovn/constants.py               | 15 ++++++
+ .../conf/plugins/ml2/drivers/ovn/ovn_conf.py  | 33 +++++++++++++
+ .../ovn/mech_driver/ovsdb/maintenance.py      | 33 +++++++++++++
+ .../ovn/mech_driver/ovsdb/test_maintenance.py | 48 +++++++++++++++++++
+ .../ovn-bfd-options-0dbb089a972b3c21.yaml     | 18 +++++++
+ 6 files changed, 179 insertions(+)
+ create mode 100644 releasenotes/notes/ovn-bfd-options-0dbb089a972b3c21.yaml
+
+diff --git a/doc/source/admin/ovn/routing.rst b/doc/source/admin/ovn/routing.rst
+index 9d5caa6d76..c92e3d2826 100644
+--- a/doc/source/admin/ovn/routing.rst
++++ b/doc/source/admin/ovn/routing.rst
+@@ -105,6 +105,30 @@ for a given router.
+ The gateway nodes monitor each other in star topology. Compute nodes don't
+ monitor each other because that's not necessary.
+ 
++Neutron exposes, via configuration file, a set of options to configure the OVS
++BFD options. That allows the administrator to configure the HA failover timeout
++that is defined as:
++
++.. math::
++
++   \text{detection time} = max(\text{bfd-min-rx}, \text{bfd-min-tx}) * \text{bfd-mult}
++
++The Neutron configuration provide a list of three preset values and an extra
++manual one, where the specific parameters can be defined:
++
++* ``[ovn]ha_failover_strategy``: this option has 4 possible values:
++
++  - "normal": the default OVN NB_Global options for ``bfd-min-rx``,
++    ``bfd-min-tx`` and ``bfd-mult`` are set [1]_ [2]_ [3]_.
++  - "aggressive": the ``bfd-min-rx`` is halved by 2.
++  - "conservative": the ``bfd-mult`` is multiplied by 2.
++  - "manual": the administrator can manually define the following values.
++
++* ``[ovn]bfd_min_rx``: BFD minimum RX interval in milliseconds, default 1000
++  ms.
++* ``[ovn]bfd_min_tx``: BFD minimum TX interval in milliseconds, default 100 ms.
++* ``[ovn]bfd_mult``: BFD detection multiplier, default 3.
++
+ 
+ Failover (detected by BFD)
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+@@ -214,3 +238,11 @@ router. This could impact the performance of the traffic using the networks
+ connected to the router if the MTU defined is low. But the user can unset the
+ Neutron configuration flag in order to avoid the fragmentation, at the cost
+ of limiting the communication between networks with different MTUs.
++
++
++References
++~~~~~~~~~~
++
++.. [1] https://github.com/openvswitch/ovs/blob/b43ed9036e6fb38fe09ff4746b603edaef5319da/vswitchd/vswitch.xml#L4147
++.. [2] https://github.com/openvswitch/ovs/blob/b43ed9036e6fb38fe09ff4746b603edaef5319da/vswitchd/vswitch.xml#L4155
++.. [3] https://github.com/openvswitch/ovs/blob/b43ed9036e6fb38fe09ff4746b603edaef5319da/vswitchd/vswitch.xml#L4236
+diff --git a/neutron/common/ovn/constants.py b/neutron/common/ovn/constants.py
+index 9cf83222d8..4faaacf5a8 100644
+--- a/neutron/common/ovn/constants.py
++++ b/neutron/common/ovn/constants.py
+@@ -490,3 +490,18 @@ OVN_DB_SYNC_MODE_OFF = 'off'
+ OVN_DB_SYNC_MODE_LOG = 'log'
+ OVN_DB_SYNC_MODE_REPAIR = 'repair'
+ OVN_DB_SYNC_MODE_MIGRATE = 'migrate'
++
++# HA failover options.
++# These are the default values defined in OVN.
++OVN_BFD_MIN_RX = 1000
++OVN_BFD_MIN_TX = 100
++OVN_BFD_MULT = 3
++OVN_HA_FAILOVER_NORMAL = 'normal'
++OVN_HA_FAILOVER_AGGRESSIVE = 'aggressive'
++OVN_HA_FAILOVER_CONSERVATIVE = 'conservative'
++OVN_HA_FAILOVER_MANUAL = 'manual'
++OVN_HA_FAILOVER_CHOICES = (OVN_HA_FAILOVER_NORMAL,
++                           OVN_HA_FAILOVER_AGGRESSIVE,
++                           OVN_HA_FAILOVER_CONSERVATIVE,
++                           OVN_HA_FAILOVER_MANUAL,
++                           )
+diff --git a/neutron/conf/plugins/ml2/drivers/ovn/ovn_conf.py b/neutron/conf/plugins/ml2/drivers/ovn/ovn_conf.py
+index a8ebadfd79..861f88144a 100644
+--- a/neutron/conf/plugins/ml2/drivers/ovn/ovn_conf.py
++++ b/neutron/conf/plugins/ml2/drivers/ovn/ovn_conf.py
+@@ -260,6 +260,39 @@ ovn_opts = [
+                        'stateless, instead of using the conntrack OVN '
+                        'actions. This strategy is faster in some '
+                        'environments, like for example DPDK deployments.')),
++    cfg.StrOpt('ha_failover_strategy',
++               default=ovn_const.OVN_HA_FAILOVER_NORMAL,
++               choices=ovn_const.OVN_HA_FAILOVER_CHOICES,
++               help=_('HA chassis group failover strategy. Determines how '
++                      'aggressively OVN fails over to a new chassis when the '
++                      'current one becomes unavailable. Supported values: %s')
++                      % ','.join(ovn_const.OVN_HA_FAILOVER_CHOICES),
++               ),
++    cfg.IntOpt('bfd_min_rx',
++               default=ovn_const.OVN_BFD_MIN_RX,
++               min=1,
++               help=_('BFD minimum RX interval in milliseconds. This sets '
++                      'the minimum interval between BFD control packets '
++                      'received by the local system. This option will apply '
++                      'only if "ha_failover_strategy=manual"'),
++               ),
++    cfg.IntOpt('bfd_min_tx',
++               default=ovn_const.OVN_BFD_MIN_TX,
++               min=1,
++               help=_('BFD minimum TX interval in milliseconds. This sets '
++                      'the minimum interval between BFD control packets '
++                      'sent by the local system. This option will apply '
++                      'only if "ha_failover_strategy=manual"'),
++               ),
++    cfg.IntOpt('bfd_mult',
++               default=ovn_const.OVN_BFD_MULT,
++               min=1,
++               max=255,
++               help=_('BFD detection multiplier. The number of BFD control '
++                      'packets that must be missed in a row before the '
++                      'session is declared down. This option will apply '
++                      'only if "ha_failover_strategy=manual"'),
++               ),
+ ]
+ 
+ nb_global_opts = [
+diff --git a/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py b/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py
+index 16c3e75d3a..3ef9ea56aa 100644
+--- a/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py
++++ b/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py
+@@ -1287,6 +1287,39 @@ class DBInconsistenciesPeriodics(SchemaAwarePeriodicsBase):
+ 
+         raise periodics.NeverAgain()
+ 
++    @has_lock_periodic(
++        periodic_run_limit=ovn_const.MAINTENANCE_TASK_RETRY_LIMIT,
++        spacing=ovn_const.MAINTENANCE_ONE_RUN_TASK_SPACING,
++        run_immediately=True)
++    def update_ha_failover(self):
++        """Set the OVN BFD settings to control the HA failover timeout"""
++        strategy = cfg.CONF.ovn.ha_failover_strategy
++        if strategy == ovn_const.OVN_HA_FAILOVER_NORMAL:
++            bfd_min_rx = ovn_const.OVN_BFD_MIN_RX
++            bfd_min_tx = ovn_const.OVN_BFD_MIN_TX
++            bfd_mult = ovn_const.OVN_BFD_MULT
++        elif strategy == ovn_const.OVN_HA_FAILOVER_AGGRESSIVE:
++            bfd_min_rx = ovn_const.OVN_BFD_MIN_RX / 2
++            bfd_min_tx = ovn_const.OVN_BFD_MIN_TX
++            bfd_mult = ovn_const.OVN_BFD_MULT
++        elif strategy == ovn_const.OVN_HA_FAILOVER_CONSERVATIVE:
++            bfd_min_rx = ovn_const.OVN_BFD_MIN_RX
++            bfd_min_tx = ovn_const.OVN_BFD_MIN_TX
++            bfd_mult = ovn_const.OVN_BFD_MULT * 2
++        else:
++            bfd_min_rx = cfg.CONF.ovn.bfd_min_rx
++            bfd_min_tx = cfg.CONF.ovn.bfd_min_tx
++            bfd_mult = cfg.CONF.ovn.bfd_mult
++
++        options = {'bfd-min-rx': str(bfd_min_rx),
++                   'bfd-min-tx': str(bfd_min_tx),
++                   'bfd-mult': str(bfd_mult),
++                   }
++        self._nb_idl.set_nb_global_options(**options).execute(
++            check_error=True)
++
++        raise periodics.NeverAgain()
++
+     # TODO(ralonsoh): to remove in E+4 cycle (2nd next SLURP release)
+     @has_lock_periodic(
+         periodic_run_limit=ovn_const.MAINTENANCE_TASK_RETRY_LIMIT,
+diff --git a/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py b/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py
+index c00aa75c35..1d417dcc30 100644
+--- a/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py
++++ b/neutron/tests/functional/plugins/ml2/drivers/ovn/mech_driver/ovsdb/test_maintenance.py
+@@ -1578,6 +1578,54 @@ class TestMaintenance(_TestMaintenanceHelper):
+             return
+         self.fail('Logical_Router_Port lrp-%s not found' % port_ids[0])
+ 
++    def _get_nb_global_options(self):
++        return self.nb_api.db_get(
++            'NB_Global', '.', 'options').execute(check_error=True)
++
++    def _test_update_ha_failover(self, strategy, expected_rx, expected_tx,
++                                 expected_mult, manual_overrides=None):
++        cfg.CONF.set_override('ha_failover_strategy', strategy, group='ovn')
++        if manual_overrides:
++            for key, value in manual_overrides.items():
++                cfg.CONF.set_override(key, value, group='ovn')
++
++        self.assertRaises(periodics.NeverAgain,
++                          self.maint.update_ha_failover)
++
++        options = self._get_nb_global_options()
++        self.assertEqual(str(expected_rx), options['bfd-min-rx'])
++        self.assertEqual(str(expected_tx), options['bfd-min-tx'])
++        self.assertEqual(str(expected_mult), options['bfd-mult'])
++
++    def test_update_ha_failover_normal(self):
++        self._test_update_ha_failover(
++            ovn_const.OVN_HA_FAILOVER_NORMAL,
++            ovn_const.OVN_BFD_MIN_RX,
++            ovn_const.OVN_BFD_MIN_TX,
++            ovn_const.OVN_BFD_MULT)
++
++    def test_update_ha_failover_aggressive(self):
++        self._test_update_ha_failover(
++            ovn_const.OVN_HA_FAILOVER_AGGRESSIVE,
++            ovn_const.OVN_BFD_MIN_RX / 2,
++            ovn_const.OVN_BFD_MIN_TX,
++            ovn_const.OVN_BFD_MULT)
++
++    def test_update_ha_failover_conservative(self):
++        self._test_update_ha_failover(
++            ovn_const.OVN_HA_FAILOVER_CONSERVATIVE,
++            ovn_const.OVN_BFD_MIN_RX,
++            ovn_const.OVN_BFD_MIN_TX,
++            ovn_const.OVN_BFD_MULT * 2)
++
++    def test_update_ha_failover_manual(self):
++        self._test_update_ha_failover(
++            ovn_const.OVN_HA_FAILOVER_MANUAL,
++            5000, 400, 8,
++            manual_overrides={'bfd_min_rx': 5000,
++                              'bfd_min_tx': 400,
++                              'bfd_mult': 8})
++
+     def test_update_security_group_with_address_group(self):
+         """Test missing Address_Sets are recreated and ACLs are updated.
+ 
+diff --git a/releasenotes/notes/ovn-bfd-options-0dbb089a972b3c21.yaml b/releasenotes/notes/ovn-bfd-options-0dbb089a972b3c21.yaml
+new file mode 100644
+index 0000000000..09011cd4dc
+--- /dev/null
++++ b/releasenotes/notes/ovn-bfd-options-0dbb089a972b3c21.yaml
+@@ -0,0 +1,18 @@
++---
++features:
++  - |
++    Added 4 new configuration options to control the OVN BFD options:
++
++    * ``[ovn]ha_failover_strategy``: this option has 4 possible values:
++
++      - "normal": the default OVN NB_Global options for ``bfd-min-rx``,
++        ``bfd-min-tx`` and ``bfd-mult`` are set.
++      - "aggressive": the ``bfd-min-rx`` is halved by 2.
++      - "conservative": the ``bfd-mult`` is multiplied by 2.
++      - "manual": the administrator can manually define the following values.
++
++    * ``[ovn]bfd_min_rx``: BFD minimum RX interval in milliseconds, default
++      1000 ms.
++    * ``[ovn]bfd_min_tx``: BFD minimum TX interval in milliseconds, default
++      100 ms.
++    * ``[ovn]bfd_mult``: BFD detection multiplier, default 3.
+-- 
+2.39.5 (Apple Git-154)
+
