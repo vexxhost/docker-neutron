@@ -28,7 +28,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
           repository: openstack/neutron
-          ref: 1f907f5952b31b53b0b6ce4fe5b9035c6867de2b # stable/2026.1
+          ref: 62a3c7f9603b6f3a30a496dff9f02d3d083c1a98 # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
@@ -43,7 +43,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
           repository: openstack/neutron-vpnaas
-          ref: 4ac0c4795eda0c548850a364c54b3bfdcf4c9fc9 # stable/2026.1
+          ref: f753c7cc2b520b4389d6d8afaccd2f38253b7eab # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
@@ -53,7 +53,7 @@ jobs:
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
           repository: openstack/networking-generic-switch
-          ref: 7f5c0cdfc891af78117b8cf2fef519b30f7258de # stable/2026.1
+          ref: bc2f95777c6c1cc02202c9a1e0377cd6c3af3e95 # stable/2026.1
 
       - uses: vexxhost/docker-atmosphere/.github/actions/checkout@c2a2333f668bfbf131bd2a7aa8c387be80f0ea85 # main
         with:
